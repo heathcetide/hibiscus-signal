@@ -130,6 +130,9 @@ public class Signals implements SignalManager{
         processEvents();
     }
 
+    /**
+     * 处理事件
+     */
     public void processEvents(){
         if (inLoop) return;
 
