@@ -30,7 +30,7 @@ public @interface SignalHandler {
     long retryDelayMs() default 1000;
 
     // The maximum number of handlers
-    int maxHandlers() default 0;
+    int maxHandlers() default 10;
 
     // The timeout for the handler
     long timeoutMs() default 2000;

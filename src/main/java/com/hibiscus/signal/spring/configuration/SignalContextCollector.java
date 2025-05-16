@@ -9,7 +9,7 @@ import java.util.Map;
  * 管理线程本地（ThreadLocal）的信号上下文数据。
  */
 @Component
-public class HibiscusSignalContextCollector {
+public class SignalContextCollector {
     /**
      * 线程本地（ThreadLocal）的信号上下文数据。
      */
@@ -49,4 +49,19 @@ public class HibiscusSignalContextCollector {
         Map<String, Object> context = contextHolder.get();
         return context != null ? context.get(key) : null;
     }
+
+    /**
+     * 清空
+     */
+    public static void clear() {
+        contextHolder.remove();
+    }
+
+    /**
+     * 获取上下文
+     */
+    public static Map<String, Object> getContext() {
+        return contextHolder.get() != null ? contextHolder.get() : new HashMap<>();
+    }
+
 }

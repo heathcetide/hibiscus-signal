@@ -10,25 +10,25 @@
     <packaging>jar</packaging>
 
     <properties>
-        <java.version>17</java.version>
         <spring-boot.version>2.4.5</spring-boot.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
-    <url>https://github.com/heathcetide/hibiscus</url>
+
+    <url>https://github.com/heathcetide/hibiscus-signal</url>
 
     <licenses>
         <license>
             <name>cetide.hibiscus</name>
-            <url>https://github.com/heathcetide/hibiscus</url>
+            <url>https://github.com/heathcetide/hibiscus-signal</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
 
     <description>
-        A framework project that can simplify development, conduct interface testing, code generation and project detection.
+        Hibiscus Signal - Hibiscus Signal is a robust event-driven system designed to manage signals, events, and handlers in a highly flexible and scalable way. process events asynchronously or synchronously, and manage event-based workflows with advanced features such as interceptors, filters, transformers, and metrics collection.
     </description>
 
     <developers>
@@ -42,9 +42,9 @@
 
 
     <scm>
-        <connection>scm:git:https://github.com/heathcetide/hibiscus.git</connection>
-        <developerConnection>scm:git:https://github.com/heathcetide/hibiscus.git</developerConnection>
-        <url>https://github.com/heathcetide/hibiscus</url>
+        <connection>scm:git:https://github.com/heathcetide/hibiscus-signal.git</connection>
+        <developerConnection>scm:git:https://github.com/heathcetide/hibiscus-signal.git</developerConnection>
+        <url>https://github.com/heathcetide/hibiscus-signal</url>
     </scm>
 
     <distributionManagement>
@@ -57,6 +57,18 @@
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>2.7.14</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Spring Context dependency, provided scope -->
@@ -78,6 +90,11 @@
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
             <version>1.9.20</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
 
         <!-- Logback Classic (包含 SLF4J API 和 Logback 实现) -->
@@ -131,27 +148,33 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.2.4</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>org.aspectj:aspectjrt</artifact>
+                                    <excludes>
+                                        <exclude>org/aspectj/**</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>org.springframework:spring-context</exclude>
-                                <exclude>org.aspectj:aspectjrt</exclude>
-                                <exclude>org.aspectj:aspectjweaver</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -166,6 +189,7 @@
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
     </build>
 

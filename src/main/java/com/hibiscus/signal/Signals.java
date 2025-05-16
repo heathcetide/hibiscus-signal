@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 import static com.hibiscus.signal.core.EventType.ADD_HANDLER;
 
 @Service
-public class Signals implements SignalManager{
+public class Signals {
 
     /**
      * 单例
@@ -188,10 +188,12 @@ public class Signals implements SignalManager{
         // 获取事件的拦截器并按优先级排序
         List<SignalInterceptor> interceptors = signalInterceptors.get(event);
 
-        // 遍历拦截器执行 beforeHandle
-        for (SignalInterceptor interceptor : interceptors) {
-            if (!interceptor.beforeHandle(event, sender, params)) {
-                return; // 如果某个拦截器阻止了信号传播，退出
+        if (interceptors != null){
+            // 遍历拦截器执行 beforeHandle
+            for (SignalInterceptor interceptor : interceptors) {
+                if (!interceptor.beforeHandle(event, sender, params)) {
+                    return; // 如果某个拦截器阻止了信号传播，退出
+                }
             }
         }
 
@@ -219,7 +221,7 @@ public class Signals implements SignalManager{
         }
 
         List<SigHandler> sigs = sigHandlers.get(event);
-        if (sigs == null) return;
+        if (sigs == null || sigs.isEmpty()) return;
 
         if (config.isAsync()) {
             emitAsync(event, sender, sigs, config, errorHandler, null, params);
@@ -442,4 +444,5 @@ public class Signals implements SignalManager{
         // 按照优先级排序拦截器
         signalInterceptors.get(event).sort(Comparator.comparingInt(SignalInterceptor::getOrder));
     }
+
 }

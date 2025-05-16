@@ -6,44 +6,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SignalContext {
 
     private final Map<String, Object> attributes;
-
-    private Map<String, Object> signalContext;
-
-    private Map<String, Object> intermediateValues;
-
-    public SignalContext(Map<String, Object> signalContext) {
-        this.signalContext = signalContext;
-        this.attributes = new ConcurrentHashMap<>();
-        this.intermediateValues = new ConcurrentHashMap<>();
-    }
+    private final Map<String, Object> intermediateValues;
 
     public SignalContext() {
         this.attributes = new ConcurrentHashMap<>();
         this.intermediateValues = new ConcurrentHashMap<>();
     }
 
-    public void addIntermediateValue(String key, Object value) {
-        intermediateValues.put(key, value);
-    }
-
-    public Object getIntermediateValue(String key) {
-        return intermediateValues.get(key);
-    }
-
-    public Map<String, Object> getIntermediateValues() {
-        return new ConcurrentHashMap<>(intermediateValues);
-    }
-
-    public void setIntermediateValues(Map<String, Object> values) {
-        if (this.intermediateValues != null) {
-            this.intermediateValues.clear();
-        }
-        if (values != null) {
-            this.intermediateValues.putAll(values);
-        }
-    }
-
-
+    // -------- Attributes（业务传参） --------
     public void setAttribute(String key, Object value) {
         attributes.put(key, value);
     }
@@ -60,44 +30,37 @@ public class SignalContext {
         return new ConcurrentHashMap<>(attributes);
     }
 
-    public Map<String, Object> getSignalContext() {
-        return signalContext;
-    }
-
-    public void setSignalContext(Map<String, Object> signalContext) {
-        this.signalContext = signalContext;
-    }
-
-    public void setAttributes(Map<String, Object> attributes) {
-        if (this.attributes != null) {
-            this.attributes.clear();  // Clear existing attributes if any
-        }
-        if (attributes != null) {
-            this.attributes.putAll(attributes);  // Add new attributes
+    public void setAttributes(Map<String, Object> newAttributes) {
+        this.attributes.clear();
+        if (newAttributes != null) {
+            this.attributes.putAll(newAttributes);
         }
     }
 
-    // Add the clearSignalContext method
-    public void clearSignalContext() {
-        if (this.signalContext != null) {
-            this.signalContext.clear();
-        }
+    // -------- IntermediateValues（框架内部中间值） --------
+    public void addIntermediateValue(String key, Object value) {
+        intermediateValues.put(key, value);
     }
 
+    public Object getIntermediateValue(String key) {
+        return intermediateValues.get(key);
+    }
 
-    // Add method to set nested context
-    public void setNestedContext(String key, Map<String, Object> nestedContext) {
-        if (this.signalContext == null) {
-            this.signalContext = new ConcurrentHashMap<>();
+    public Map<String, Object> getIntermediateValues() {
+        return new ConcurrentHashMap<>(intermediateValues);
+    }
+
+    public void setIntermediateValues(Map<String, Object> values) {
+        this.intermediateValues.clear();
+        if (values != null) {
+            this.intermediateValues.putAll(values);
         }
-        this.signalContext.put(key, nestedContext);
     }
 
     @Override
     public String toString() {
         return "SignalContext{" +
                 "attributes=" + attributes +
-                ", signalContext=" + signalContext +
                 ", intermediateValues=" + intermediateValues +
                 '}';
     }
