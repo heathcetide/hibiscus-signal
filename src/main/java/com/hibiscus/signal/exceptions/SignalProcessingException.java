@@ -1,20 +1,21 @@
 package com.hibiscus.signal.exceptions;
 
 /**
- * 信号处理过程中发生的异常类
+ * Exception thrown when a signal processing error occurs.
+ * <p>
+ * This class includes an error code to distinguish different error types,
+ * making it suitable for structured exception handling in business logic.
  */
 public class SignalProcessingException extends Exception {
 
-    /**
-     * 错误码，用于标识不同类型的异常
-     */
+    /** Error code used to identify the specific type of signal failure. */
     private final int errorCode;
 
     /**
-     * 构造函数，使用指定的错误信息和错误码创建异常对象
+     * Constructs a new {@code SignalProcessingException} with a specified message and error code.
      *
-     * @param message   异常信息
-     * @param errorCode 错误码
+     * @param message   a human-readable description of the error
+     * @param errorCode the custom application-specific error code
      */
     public SignalProcessingException(String message, int errorCode) {
         super(message);
@@ -22,11 +23,11 @@ public class SignalProcessingException extends Exception {
     }
 
     /**
-     * 构造函数，使用指定的错误信息、错误码和异常原因创建异常对象
+     * Constructs a new {@code SignalProcessingException} with a message, error code, and root cause.
      *
-     * @param message   异常信息
-     * @param errorCode 错误码
-     * @param cause     异常原因
+     * @param message   a human-readable description of the error
+     * @param errorCode the custom application-specific error code
+     * @param cause     the underlying cause of the exception
      */
     public SignalProcessingException(String message, int errorCode, Throwable cause) {
         super(message, cause);
@@ -34,27 +35,28 @@ public class SignalProcessingException extends Exception {
     }
 
     /**
-     * 获取错误码
+     * Returns the error code associated with this exception.
      *
-     * @return 错误码
+     * @return the error code as an integer
      */
     public int getErrorCode() {
         return errorCode;
     }
 
     /**
-     * 返回异常的详细信息，包括错误码、消息和原因（如果存在）
+     * Returns a string representation of the exception, including the error code,
+     * message, and cause if available.
      *
-     * @return 异常信息字符串
+     * @return a detailed string describing the exception
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("SignalProcessingException [errorCode=").append(errorCode)
+        StringBuilder sb = new StringBuilder("SignalProcessingException [")
+                .append("errorCode=").append(errorCode)
                 .append(", message=").append(getMessage());
 
         if (getCause() != null) {
-            sb.append(", cause=").append(getCause().toString());
+            sb.append(", cause=").append(getCause());
         }
 
         sb.append("]");

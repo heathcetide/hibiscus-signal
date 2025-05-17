@@ -1,60 +1,45 @@
 package com.hibiscus.signal.config;
 
 /**
- * 配置类，用于定义信号处理的各种参数和行为。
+ * Configuration class that defines behavior for signal handling.
+ * <p>
+ * Includes properties such as retry policy, execution mode,
+ * priority level, timeout, and metrics options.
+ * Use {@link SignalConfig.Builder} to construct an instance.
  */
 public class SignalConfig {
 
-    /**
-     * 是否异步处理信号。
-     */
-    private boolean async;
+    /** Whether to handle the signal asynchronously. */
+    private final boolean async;
+
+    /** Maximum number of retry attempts. */
+    private final int maxRetries;
+
+    /** Delay between retries in milliseconds. */
+    private final long retryDelayMs;
+
+    /** Maximum number of concurrent handlers allowed. */
+    private final int maxHandlers;
+
+    /** Timeout for signal processing in milliseconds. */
+    private final long timeoutMs;
+
+    /** Whether to record processing metrics. */
+    private final boolean recordMetrics;
+
+    /** Priority of the signal. */
+    private final SignalPriority priority;
+
+    /** Logical group name for signal categorization. */
+    private final String groupName;
+
+    /** Whether the signal is persistent across restarts. */
+    private final boolean persistent;
 
     /**
-     * 最大重试次数。
-     */
-    private int maxRetries;
-
-    /**
-     * 重试延迟时间（毫秒）。
-     */
-    private long retryDelayMs;
-
-    /**
-     * 最大信号处理器数量。
-     */
-    private int maxHandlers;
-
-    /**
-     * 信号处理超时时间（毫秒）。
-     */
-    private long timeoutMs;
-
-    /**
-     * 是否记录指标。
-     */
-    private boolean recordMetrics;
-
-    /**
-     * 信号优先级。
-     */
-    private SignalPriority priority;
-
-    /**
-     * 信号组名称。
-     */
-    private String groupName;
-
-    /**
-     * 是否持久化信号。
-     */
-    private boolean persistent;
-
-    /**
-     * 私有构造方法，通过 Builder 构建实例。
-     * // TODO 建造者模式
+     * Private constructor used by the builder.
      *
-     * @param builder 包含配置参数的 Builder 实例
+     * @param builder the builder instance with configuration values
      */
     private SignalConfig(Builder builder) {
         this.async = builder.async;
@@ -69,59 +54,25 @@ public class SignalConfig {
     }
 
     /**
-     * 用于构建 SignalConfig 实例的内部静态类。
+     * Builder class for creating {@link SignalConfig} instances with custom settings.
      */
     public static class Builder {
-        /**
-         * 是否异步处理信号，默认为 false。
-         */
+
         private boolean async = false;
-
-        /**
-         * 最大重试次数，默认为 3。
-         */
         private int maxRetries = 3;
-
-        /**
-         * 重试延迟时间（毫秒），默认为 1000。
-         */
         private long retryDelayMs = 1000;
-
-        /**
-         * 最大信号处理器数量，默认为 100。
-         */
         private int maxHandlers = 100;
-
-        /**
-         * 信号处理超时时间（毫秒），默认为 5000。
-         */
         private long timeoutMs = 5000;
-
-        /**
-         * 是否记录指标，默认为 true。
-         */
         private boolean recordMetrics = true;
-
-        /**
-         * 信号优先级，默认为 SignalPriority.MEDIUM。
-         */
         private SignalPriority priority = SignalPriority.MEDIUM;
-
-        /**
-         * 信号组名称，默认为 null。
-         */
         private String groupName = null;
-
-        /**
-         * 是否持久化信号，默认为 false。
-         */
         private boolean persistent = false;
 
         /**
-         * 设置是否异步处理信号。
+         * Sets whether the signal should be handled asynchronously.
          *
-         * @param async 是否异步处理信号
-         * @return Builder 实例
+         * @param async true for async execution
+         * @return the builder instance
          */
         public Builder async(boolean async) {
             this.async = async;
@@ -129,10 +80,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置最大重试次数。
+         * Sets the maximum number of retry attempts.
          *
-         * @param maxRetries 最大重试次数
-         * @return Builder 实例
+         * @param maxRetries number of retries
+         * @return the builder instance
          */
         public Builder maxRetries(int maxRetries) {
             this.maxRetries = maxRetries;
@@ -140,10 +91,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置重试延迟时间（毫秒）。
+         * Sets the delay between retries in milliseconds.
          *
-         * @param retryDelayMs 重试延迟时间（毫秒）
-         * @return Builder 实例
+         * @param retryDelayMs delay in ms
+         * @return the builder instance
          */
         public Builder retryDelayMs(long retryDelayMs) {
             this.retryDelayMs = retryDelayMs;
@@ -151,10 +102,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置最大信号处理器数量。
+         * Sets the maximum number of concurrent signal handlers.
          *
-         * @param maxHandlers 最大信号处理器数量
-         * @return Builder 实例
+         * @param maxHandlers handler limit
+         * @return the builder instance
          */
         public Builder maxHandlers(int maxHandlers) {
             this.maxHandlers = maxHandlers;
@@ -162,10 +113,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置信号处理超时时间（毫秒）。
+         * Sets the signal handling timeout in milliseconds.
          *
-         * @param timeoutMs 信号处理超时时间（毫秒）
-         * @return Builder 实例
+         * @param timeoutMs timeout in ms
+         * @return the builder instance
          */
         public Builder timeoutMs(long timeoutMs) {
             this.timeoutMs = timeoutMs;
@@ -173,10 +124,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置是否记录指标。
+         * Sets whether metrics should be recorded.
          *
-         * @param recordMetrics 是否记录指标
-         * @return Builder 实例
+         * @param recordMetrics true to enable metrics
+         * @return the builder instance
          */
         public Builder recordMetrics(boolean recordMetrics) {
             this.recordMetrics = recordMetrics;
@@ -184,10 +135,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置信号优先级。
+         * Sets the signal priority.
          *
-         * @param priority 信号优先级
-         * @return Builder 实例
+         * @param priority priority level
+         * @return the builder instance
          */
         public Builder priority(SignalPriority priority) {
             this.priority = priority;
@@ -195,10 +146,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置信号组名称。
+         * Sets the signal group name.
          *
-         * @param groupName 信号组名称
-         * @return Builder 实例
+         * @param groupName group identifier
+         * @return the builder instance
          */
         public Builder groupName(String groupName) {
             this.groupName = groupName;
@@ -206,10 +157,10 @@ public class SignalConfig {
         }
 
         /**
-         * 设置是否持久化信号。
+         * Sets whether the signal should be persistent.
          *
-         * @param persistent 是否持久化信号
-         * @return Builder 实例
+         * @param persistent true to enable persistence
+         * @return the builder instance
          */
         public Builder persistent(boolean persistent) {
             this.persistent = persistent;
@@ -217,92 +168,49 @@ public class SignalConfig {
         }
 
         /**
-         * 构建并返回 SignalConfig 实例。
+         * Builds and returns a {@link SignalConfig} instance with the specified settings.
          *
-         * @return SignalConfig 实例
+         * @return a new SignalConfig object
          */
         public SignalConfig build() {
             return new SignalConfig(this);
         }
     }
 
-    /**
-     * 获取是否异步处理信号。
-     *
-     * @return 是否异步处理信号
-     */
+    // Getters
+
     public boolean isAsync() {
         return async;
     }
 
-    /**
-     * 获取最大重试次数。
-     *
-     * @return 最大重试次数
-     */
     public int getMaxRetries() {
         return maxRetries;
     }
 
-    /**
-     * 获取重试延迟时间（毫秒）。
-     *
-     * @return 重试延迟时间（毫秒）
-     */
     public long getRetryDelayMs() {
         return retryDelayMs;
     }
 
-    /**
-     * 获取最大信号处理器数量。
-     *
-     * @return 最大信号处理器数量
-     */
     public int getMaxHandlers() {
         return maxHandlers;
     }
 
-    /**
-     * 获取信号处理超时时间（毫秒）。
-     *
-     * @return 信号处理超时时间（毫秒）
-     */
     public long getTimeoutMs() {
         return timeoutMs;
     }
 
-    /**
-     * 获取是否记录指标。
-     *
-     * @return 是否记录指标
-     */
     public boolean isRecordMetrics() {
         return recordMetrics;
     }
 
-    /**
-     * 获取信号优先级。
-     *
-     * @return 信号优先级
-     */
     public SignalPriority getPriority() {
         return priority;
     }
 
-    /**
-     * 获取信号组名称。
-     *
-     * @return 信号组名称
-     */
     public String getGroupName() {
         return groupName;
     }
 
-    /**
-     * 获取是否持久化信号。
-     *
-     * @return 是否持久化信号
-     */
     public boolean isPersistent() {
         return persistent;
     }
