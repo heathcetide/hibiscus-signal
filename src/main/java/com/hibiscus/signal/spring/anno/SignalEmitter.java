@@ -4,10 +4,8 @@ import com.hibiscus.signal.core.DefaultErrorHandler;
 import com.hibiscus.signal.core.DefaultSignalCallback;
 import com.hibiscus.signal.core.ErrorHandler;
 import com.hibiscus.signal.core.SignalCallback;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+
+import java.lang.annotation.*;
 
 /**
  * Annotation to mark a method or class as a signal emitter.
@@ -17,6 +15,7 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+@Documented
 public @interface SignalEmitter {
 
     /**

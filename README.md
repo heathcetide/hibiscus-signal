@@ -1,106 +1,193 @@
 # Hibiscus Signal
 
-**Hibiscus Signal** 是一个灵活且高效的事件驱动信号管理系统。它允许你绑定事件与处理器、处理事件、并通过高级功能（如拦截器、过滤器、转换器和度量统计）管理事件驱动的工作流。这个系统设计用于满足现代、分布式架构中的需求。
+<p align="center">
+    <img src=".README/logo.jpg" alt="Hibiscus Logo" width="150" height="150">
+    <br>      
+    <br>
+</p>
 
-## 主要功能
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.heathcetide/cetide.hibiscus.signal)](https://central.sonatype.com/artifact/io.github.heathcetide/cetide.hibiscus.signal)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-1. **事件绑定与管理**：
-    - 简单的 API 来将事件与处理器绑定，并进行管理。
-    - 支持灵活的配置，包括自定义信号上下文和优先级。
+轻量级、高扩展的Spring事件驱动框架，提供完整的信号处理生命周期管理，支持拦截器链、过滤器链、转换器链等企业级特性。
 
-2. **同步与异步事件处理**：
-    - 可以根据需求选择同步或异步方式处理事件。
-    - 使用线程池高效地处理异步事件。
+-----------------------------------------------------------------------------------------------
 
-3. **信号处理器**：
-    - 动态地添加或移除信号处理器。
-    - 支持为每个处理器设置优先级，确保事件按照正确的顺序处理。
+## ✨ 特性
 
-4. **信号配置**：
-    - 配置每个信号的行为，包括最大处理器数量、重试次数、超时等。
-    - 支持是否收集信号处理的度量统计。
+- **注解驱动** - 通过`@SignalEmitter`和`@SignalHandler`快速定义事件
+- **全链路管理** - 支持拦截器、过滤器、转换器组成的处理管道
+- **上下文传递** - 内置`SignalContext`实现跨处理器数据共享
+- **异步处理** - 基于线程池的异步事件处理，支持自定义线程池
+- **监控统计** - 内置Metrics统计事件处理指标
+- **优先级控制** - 多级优先级处理机制
+- **Spring生态整合** - 完美兼容Spring Boot自动配置
 
-5. **错误处理与度量统计**：
-    - Hibiscus Signal 记录每个事件的度量统计，包括处理器执行时间和错误计数。
-    - 可以配置自定义错误处理器来处理异常，提供回退机制。
+## 📦 安装
 
-6. **过滤器与拦截器**：
-    - **信号过滤器**：在事件传播之前，检查事件是否符合条件。如果不符合条件，停止传播。
-    - **信号拦截器**：允许在事件处理前执行额外的逻辑，提供更大的灵活性。
-
-7. **信号转换器**：
-    - **信号转换器**：允许在事件处理前对事件参数进行转换。
-
-8. **优雅的系统关闭**：
-    - 支持优雅的系统关闭，确保所有事件和处理器在退出前正确完成或停止。
-
-## 核心类
-
-- **SignalManager**：管理事件的主要接口，包括绑定处理器、发出信号、添加过滤器等。
-- **Signals**：`SignalManager` 的实现，负责管理事件、处理器和信号配置。
-- **SignalConfig**：信号的配置类，定义信号的行为，包括优先级、重试次数和超时等。
-- **SignalHandler**：事件处理器，用于处理与特定事件相关的信号。
-- **SignalInterceptor**：在信号处理前执行拦截逻辑。
-- **SignalFilter**：在事件传播前根据特定条件对事件进行过滤。
-- **SignalTransformer**：在传递给处理器之前，转换事件参数。
-- **SignalMetrics**：用于收集和跟踪信号处理的度量信息，如处理时间和错误计数。
-
-## 示例用法
-
-```java
-public class MyEventHandler implements SignalHandler {
-    @Override
-    public void handle(Object sender, Object... params) {
-        // 事件处理逻辑
-    }
-}
-
-// 绑定事件与处理器并配置
-long handlerId = Signals.sig().connect("myEvent", new MyEventHandler());
-
-// 触发事件
-Signals.sig().emit("myEvent", this, (error) -> {
-    if (error != null) {
-        System.out.println("发生错误: " + error.getMessage());
-    }
-}, "事件数据");
-
-// 解绑事件处理器
-Signals.sig().disconnect("myEvent", handlerId);
-```
-
-## 安装与配置
-你可以通过 Maven 将 Hibiscus Signal 添加到你的 Java 项目中
+Maven 依赖：
 ```xml
 <dependency>
-    <groupId>com.hibiscus</groupId>
-    <artifactId>hibiscus-signal</artifactId>
-    <version>1.0.0</version>
+    <groupId>io.github.heathcetide</groupId>
+    <artifactId>cetide.hibiscus.signal</artifactId>
+    <version>1.0.4</version>
 </dependency>
 ```
 
+## 🚀 快速开始
 
-在使用时，需要配置 Redis 或其他存储系统，尤其是如果你计划在分布式服务中使用该系统。
+### 1. 定义事件发射器
+```java
+@RestController
+public class AuthController {
 
-## 使用场景
-- 事件驱动架构：高效地管理和传播事件，适用于微服务架构。
+    @PostMapping("/login")
+    @SignalEmitter(USER_LOGIN_EVENT) // 标记为登录事件发射点
+    public String login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        // ...登录逻辑
+        SignalContextCollector.collect("loginUser", user); // 收集中间数据
+        SignalContextCollector.collect("httpRequest", httpRequest);
+        return jwtToken;
+    }
+}
+```
 
-- 任务编排：在后台任务执行过程中，通过信号控制任务执行顺序。
+### 2. 定义事件处理器
+```java
+@Component
+public class UserEventHandler {
+    
+    @SignalHandler(
+        value = USER_LOGIN_EVENT,
+        target = UserEventHandler.class,
+        methodName = "handleLogin",
+        async = true
+    )
+    public void handleLogin(SignalContext context) {
+        User user = (User) context.getIntermediateValues().get("loginUser");
+        // 发送欢迎邮件等后处理逻辑
+    }
+}
+```
 
-- 业务流程管理：根据特定事件触发相应的业务操作，配置条件和处理器。
+### 3. 自定义线程池（可选）
+```java
+@Configuration
+public class SignalExecutorConfig {
 
-## 许可证
-此项目采用 **MIT** 许可证，详见 LICENSE 文件。
+    @Bean("signalExecutor")
+    public ExecutorService signalExecutor() {
+        return new ThreadPoolExecutor(
+            6, 12, 60, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(500),
+            new CustomThreadFactory("signal-pool"),
+            new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+    }
+}
+```
 
-你可以在 GitHub 上找到源代码并参与该项目的贡献。
+## 🛠️ 高级功能
+
+### 拦截器示例（操作日志）
+```java
+@Component
+@SignalInterceptorBind({USER_LOGIN_EVENT, USER_LOGOUT_EVENT})
+public class AuditInterceptor implements SignalInterceptor {
+
+    @Override
+    public boolean beforeHandle(String event, Object sender, Object... params) {
+        SignalContext context = (SignalContext) params[0];
+        HttpServletRequest request = (HttpServletRequest) context.getIntermediateValues().get("httpRequest");
+        
+        // 记录审计日志
+        log.info("用户操作事件: {} from IP: {}", event, request.getRemoteAddr());
+        return true;
+    }
+}
+```
+
+### 过滤器示例（权限校验）
+```java
+@Component
+@SignalFilterBind("security.*")
+public class SecurityFilter implements SignalFilter {
+
+    @Override
+    public boolean filter(String event, Object sender, Object... params) {
+        SignalContext context = (SignalContext) params[0];
+        return checkPermission(context.getAttributes());
+    }
+}
+```
+
+### 转换器示例（数据脱敏）
+```java
+@Component
+@SignalTransformerBind("user.*")
+public class DataMaskTransformer implements SignalTransformer {
+
+    @Override
+    public Object[] transform(String event, Object sender, Object... params) {
+        User user = (User) params[0];
+        user.setPassword("******");
+        return new Object[]{user};
+    }
+}
+```
+
+## 📊 监控指标
+通过`SignalMetrics`获取处理统计：
+```java
+@Autowired
+private Signals signals;
+
+public void showMetrics() {
+    Map<String, Map<String, Object>> metrics = signals.getMetrics().getAllMetrics();
+    metrics.forEach((event, stats) -> {
+        System.out.println(event + " - 处理次数: " + stats.get("emitCount"));
+    });
+}
+```
+
+## ⚙️ 配置参数
+
+| 参数项               | 默认值     | 说明                     |
+|---------------------|-----------|------------------------|
+| signal.async        | true      | 是否启用异步处理          |
+| signal.max-retries  | 3         | 最大重试次数             |
+| signal.timeout      | 5000      | 处理超时时间(ms)         |
+| signal.pool.core    | 4         | 核心线程数               |
+| signal.pool.max     | 8         | 最大线程数               |
 
 
-### 说明：
-- **主要功能** 部分详细介绍了 Hibiscus Signal 的核心功能。
-- **核心类** 部分列出了项目的主要类及其作用，帮助开发者快速了解项目的结构。
-- **示例用法** 提供了基本的用法示例，帮助用户理解如何使用这个库来处理事件。
-- **安装与配置** 部分说明了如何将该项目集成到 Java 项目中，并提供了 Maven 依赖的配置。
-- **使用场景** 部分给出了可能的应用场景，帮助用户理解该库的应用领域。
-- **许可证** 部分说明了项目的开源许可证。
+## 📜 版本历史
 
-你可以将这个内容保存为 `README.md` 文件并放置在项目的根目录下。
+### v1.0.4 (2024-05-20) 🚀
+**新特性**
+- 支持通过`@SignalInterceptorBind`、`@SignalFilterBind`、`@SignalTransformerBind`注解自动注册组件
+- 增加线程池自定义配置能力
+
+### v1.0.3 (2024-04-15) 🔧
+- 新增信号上下文收集器(SignalContextCollector)
+- 初始化注册使用ApplicationReadyEvent，解决初期循环依赖问题
+- 解决初始化SignalHandler时，中间传输值为null的问题
+- 修复内置线程池无法识别问题
+
+### v1.0.2 (2024-03-10) 🎯
+- 基础事件处理框架发布
+- 实现同步/异步双模式处理
+- 支持多级优先级控制
+- 提供Spring基础整合能力
+- 内置默认线程池配置
+
+### v1.0.1 (2024-02-01) 🛠
+- 核心信号处理框架搭建
+- 基础API设计（SignalHandler/SignalEmitter）
+- 实现基本事件绑定与触发机制
+- 提供简单指标统计功能
+
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE)，详情请见许可证文件。

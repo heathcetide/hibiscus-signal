@@ -1,3 +1,4 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 com.hibiscus.signal.spring.configuration.SignalAutoConfiguration,\
-com.hibiscus.signal.config.SignalDefaultThreadPoolConfig
+com.hibiscus.signal.config.SignalDefaultThreadPoolConfig,\
+com.hibiscus.signal.spring.configuration.SignalComponentRegistrar

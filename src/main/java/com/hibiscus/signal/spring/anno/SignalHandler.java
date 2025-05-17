@@ -2,10 +2,7 @@ package com.hibiscus.signal.spring.anno;
 
 import com.hibiscus.signal.config.SignalPriority;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Annotation to register a method as a signal handler.
@@ -15,6 +12,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
+@Documented
 public @interface SignalHandler {
 
     /**
