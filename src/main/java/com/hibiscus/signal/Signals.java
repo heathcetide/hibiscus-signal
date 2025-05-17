@@ -4,6 +4,7 @@ import com.hibiscus.signal.config.SignalConfig;
 import com.hibiscus.signal.core.*;
 import com.hibiscus.signal.exceptions.SignalProcessingException;
 import com.hibiscus.signal.utils.SnowflakeIdGenerator;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -14,11 +15,6 @@ import static com.hibiscus.signal.core.EventType.ADD_HANDLER;
 
 @Service
 public class Signals {
-
-    /**
-     * 单例
-     */
-    private static final Signals SIG = new Signals();
 
     /**
      * 监听器集合
@@ -65,15 +61,8 @@ public class Signals {
      */
     private final ExecutorService executorService;
 
-    private Signals() {
-        this.executorService = Executors.newFixedThreadPool(4);
-    }
-
-    /**
-     * 获取单例
-     */
-    public static Signals sig() {
-        return SIG;
+    public Signals(@Qualifier("signalExecutor") ExecutorService executorService) {
+        this.executorService = executorService;
     }
 
     /**
