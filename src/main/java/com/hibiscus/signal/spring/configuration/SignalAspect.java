@@ -70,14 +70,17 @@ public class SignalAspect implements ApplicationContextAware {
     @Around("@annotation(signalEmitter)")
     public Object handleSignalEmitter(ProceedingJoinPoint joinPoint, SignalEmitter signalEmitter) throws Throwable {
         String event = signalEmitter.value();
+
         Object[] args = joinPoint.getArgs();
         Parameter[] parameters = ((MethodSignature) joinPoint.getSignature()).getMethod().getParameters();
 
         // Build parameter map
         Map<String, Object> requestParams = new HashMap<>();
-        for (int i = 0; i < parameters.length; i++) {
-            String paramName = parameters[i].getName();
-            requestParams.put(paramName != null ? paramName : "arg" + i, args[i]);
+        if (args != null && parameters != null) {
+            for (int i = 0; i < parameters.length && i < args.length; i++) {
+                String paramName = parameters[i].getName();
+                requestParams.put(paramName != null ? paramName : "arg" + i, args[i]);
+            }
         }
 
         // Execute original method
@@ -88,14 +91,15 @@ public class SignalAspect implements ApplicationContextAware {
         Class<? extends ErrorHandler> errorHandlerClass = signalEmitter.errorHandler();
         ErrorHandler errorHandler = errorHandlerClass.getDeclaredConstructor().newInstance();
 
-        // Collect intermediate signal context
         Class<? extends SignalCallback> signalCallbackClass = signalEmitter.callback();
         SignalCallback signalCallback = signalCallbackClass.getDeclaredConstructor().newInstance();
 
         Map<String, Object> intermediateData = SignalContextCollector.getAndClear();
+
         SignalContext context = new SignalContext();
         context.setIntermediateValues(intermediateData);
-        context.setAttributes(requestParams);
+
+        context.setAttributes(replaceNullValues(requestParams));
 
         // Emit signal
         signals.emit(event, joinPoint.getTarget(),signalCallback, errorHandler::handle, context);
@@ -225,6 +229,14 @@ public class SignalAspect implements ApplicationContextAware {
             log.error("An exception occurred while initializing the signal processor.", e);
             throw e;
         }
+    }
+
+    private Map<String, Object> replaceNullValues(Map<String, Object> original) {
+        Map<String, Object> result = new HashMap<>();
+        for (Map.Entry<String, Object> entry : original.entrySet()) {
+            result.put(entry.getKey(), entry.getValue() != null ? entry.getValue() : "null");
+        }
+        return result;
     }
 
 }
