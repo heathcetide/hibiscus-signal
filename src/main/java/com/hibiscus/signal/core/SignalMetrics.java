@@ -1,5 +1,7 @@
 package com.hibiscus.signal.core;
 
+import com.hibiscus.signal.config.SignalConfig;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,6 +32,7 @@ public class SignalMetrics {
      * 统计信号量最后发射时间相关的指标
      */
     private final Map<String, Long> lastEmitTime = new ConcurrentHashMap<>();
+
 
     public void recordEmit(String signalName) {
         emitCount.computeIfAbsent(signalName, k -> new AtomicLong()).incrementAndGet();

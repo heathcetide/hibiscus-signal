@@ -61,6 +61,10 @@ public class Signals {
      */
     private final ExecutorService executorService;
 
+
+    private final SignalProtectionManager protectionManager = new SignalProtectionManager();
+
+
     public Signals(@Qualifier("signalExecutor") ExecutorService executorService) {
         this.executorService = executorService;
     }
@@ -174,6 +178,10 @@ public class Signals {
     }
 
     public void emit(String event, Object sender, Consumer<Throwable> errorHandler, Object... params) {
+        if (protectionManager.isBlocked(event)) {
+            return;
+        }
+
         // 获取事件的拦截器并按优先级排序
         List<SignalInterceptor> interceptors = signalInterceptors.get(event);
 
@@ -220,6 +228,13 @@ public class Signals {
     }
 
     public void emit(String event, Object sender, SignalCallback callback, Consumer<Throwable> errorHandler, Object... params) {
+        if (protectionManager.isBlocked(event)) {
+            if (callback != null) {
+                callback.onError(event, sender, new RuntimeException("Signal blocked (circuit open or rate limited)"), params);
+                callback.onComplete(event, sender, params);
+            }
+            return;
+        }
 
         // 获取事件的拦截器并按优先级排序
         List<SignalInterceptor> interceptors = signalInterceptors.get(event);
@@ -290,7 +305,9 @@ public class Signals {
                 if (callback != null) {
                     callback.onSuccess(event, sender, params); // 调用成功回调
                 }
+                protectionManager.update(event, metrics);
             } catch (Exception e) {
+                protectionManager.update(event, metrics);
                 handleError(event, config, errorHandler, e);
                 if (callback != null) {
                     callback.onError(event, sender, e, params); // 调用失败回调
@@ -316,7 +333,9 @@ public class Signals {
                     if (callback != null) {
                         callback.onSuccess(event, sender, params); // 调用成功回调
                     }
+                    protectionManager.update(event, metrics);
                 } catch (Exception e) {
+                    protectionManager.update(event, metrics);
                     handleError(event, config, errorHandler, e);
                     if (callback != null) {
                         callback.onError(event, sender, e, params); // 调用失败回调
@@ -430,8 +449,11 @@ public class Signals {
      */
     public void addSignalInterceptor(String event, SignalInterceptor interceptor) {
         signalInterceptors.computeIfAbsent(event, k -> new ArrayList<>()).add(interceptor);
-        // 按照优先级排序拦截器
         signalInterceptors.get(event).sort(Comparator.comparingInt(SignalInterceptor::getOrder));
     }
 
+    public void configureProtection(String event, CircuitBreaker breaker, RateLimiter limiter) {
+        protectionManager.registerCircuitBreaker(event, breaker);
+        protectionManager.registerRateLimiter(event, limiter);
+    }
 }
