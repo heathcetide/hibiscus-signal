@@ -49,7 +49,7 @@ public class Signals {
     /**
      * 事件队列
      */
-    private final PriorityQueue<SigHandler> eventQueue = new PriorityQueue<>(Comparator.comparingInt(event -> event.getPriority().getValue()));
+    private final PriorityBlockingQueue<SigHandler> eventQueue = new PriorityBlockingQueue<>(11, Comparator.comparingInt(event -> event.getPriority().getValue()));
 
     /**
      * 信号转换器集合
