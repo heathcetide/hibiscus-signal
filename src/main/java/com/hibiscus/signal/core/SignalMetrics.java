@@ -33,7 +33,7 @@ public class SignalMetrics {
      */
     private final Map<String, Long> lastEmitTime = new ConcurrentHashMap<>();
 
-
+    private final Map<String, SignalContext> eventTraces = new ConcurrentHashMap<>();
     public void recordEmit(String signalName) {
         emitCount.computeIfAbsent(signalName, k -> new AtomicLong()).incrementAndGet();
         lastEmitTime.put(signalName, System.currentTimeMillis());
@@ -72,4 +72,14 @@ public class SignalMetrics {
         );
         return allMetrics;
     }
+
+
+    public void recordTrace(SignalContext context) {
+        eventTraces.put(context.getTraceId(), context);
+    }
+
+    public SignalContext getTrace(String traceId) {
+        return eventTraces.get(traceId);
+    }
+
 }
