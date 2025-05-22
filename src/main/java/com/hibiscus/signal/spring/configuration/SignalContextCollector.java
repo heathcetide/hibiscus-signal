@@ -1,7 +1,7 @@
 package com.hibiscus.signal.spring.configuration;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
 import org.springframework.stereotype.Component;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +17,7 @@ public class SignalContextCollector {
     /**
      * Thread-local holder for storing signal-related context data.
      */
-    private static final ThreadLocal<Map<String, Object>> contextHolder = new ThreadLocal<>();
+    private static final TransmittableThreadLocal<Map<String, Object>> contextHolder = new TransmittableThreadLocal<>();
 
     /**
      * Collects a key-value pair into the current thread's context map.
@@ -70,4 +70,17 @@ public class SignalContextCollector {
         return contextHolder.get() != null ? contextHolder.get() : new HashMap<>();
     }
 
+    /**
+     * Collects multiple key-value pairs into the current thread's context map.
+     * <p>
+     * If the context map does not yet exist, it will be initialized.
+     *
+     * @param values the map of key-value pairs to add to the thread-local context
+     */
+    public static void collectAll(Map<String, Object> values) {
+        if (contextHolder.get() == null) {
+            contextHolder.set(new HashMap<>());
+        }
+        contextHolder.get().putAll(values);
+    }
 }
