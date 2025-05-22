@@ -1,6 +1,7 @@
 package com.hibiscus.signal.spring.configuration;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
+import com.hibiscus.signal.core.SignalContext;
 import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
@@ -82,5 +83,19 @@ public class SignalContextCollector {
             contextHolder.set(new HashMap<>());
         }
         contextHolder.get().putAll(values);
+    }
+
+    /**
+     * Collects tracing information from the given SignalContext and logs or stores it
+     * under a predefined key (e.g., "_trace"). This method is useful for debugging,
+     * monitoring, or auditing signal processing across distributed components.
+     *
+     * @param context the SignalContext containing metadata for tracing (e.g., traceId, eventId)
+     */
+    public static void collectTraceInfo(SignalContext context) {
+        Map<String, Object> traceInfo = new HashMap<>();
+        traceInfo.put("traceId", context.getTraceId());
+        traceInfo.put("eventId", context.getEventId());
+        collect("_trace", traceInfo);
     }
 }

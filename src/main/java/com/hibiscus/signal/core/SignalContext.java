@@ -1,12 +1,19 @@
 package com.hibiscus.signal.core;
 
+import com.hibiscus.signal.utils.SnowflakeIdGenerator;
+
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SignalContext {
 
     private final Map<String, Object> attributes;
     private final Map<String, Object> intermediateValues;
+
+    private String traceId;
+    private String eventId;
+
 
     public SignalContext() {
         this.attributes = new ConcurrentHashMap<>();
@@ -56,6 +63,18 @@ public class SignalContext {
             this.intermediateValues.putAll(values);
         }
     }
+
+    // 在现有方法后添加新方法
+    public void initTrace(String eventName) {
+        if (eventName == null) {
+            eventName = "unknown";
+        }
+        this.traceId = UUID.randomUUID().toString();
+        this.eventId = eventName + "_" + SnowflakeIdGenerator.nextId();
+    }
+
+    public String getTraceId() { return traceId; }
+    public String getEventId() { return eventId; }
 
     @Override
     public String toString() {

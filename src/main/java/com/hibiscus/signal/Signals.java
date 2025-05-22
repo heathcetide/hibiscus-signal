@@ -13,6 +13,11 @@ import java.util.function.Consumer;
 
 import static com.hibiscus.signal.core.EventType.ADD_HANDLER;
 
+/**
+ * The central component for managing signal connections, emissions,
+ * event handling, filtering, transformation, and metrics.
+ * Also integrates protection mechanisms like circuit breakers and rate limiters.
+ */
 @Service
 public class Signals {
 
@@ -177,6 +182,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 发射信号
+     */
     public void emit(String event, Object sender, Consumer<Throwable> errorHandler, Object... params) {
         if (protectionManager.isBlocked(event)) {
             return;
@@ -227,6 +235,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 发射信号
+     */
     public void emit(String event, Object sender, SignalCallback callback, Consumer<Throwable> errorHandler, Object... params) {
         if (protectionManager.isBlocked(event)) {
             if (callback != null) {
@@ -359,7 +370,7 @@ public class Signals {
                 if (config.getTimeoutMs() > 0) {
                     executeWithTimeout(sig, sender, config.getTimeoutMs(), params);
                 } else {
-                    sig.getHandler().handle(sender, params);
+                    executeHandler(sig, sender, params);
                 }
                 return;
             } catch (Exception e) {
@@ -379,7 +390,7 @@ public class Signals {
     private void executeWithTimeout(SigHandler sig, Object sender, long timeoutMs, Object... params)
             throws Exception {
         Future<?> future = executorService.submit(() -> {
-            sig.getHandler().handle(sender, params);
+            executeHandler(sig, sender, params);
             return null;
         });
 
@@ -456,4 +467,36 @@ public class Signals {
         protectionManager.registerCircuitBreaker(event, breaker);
         protectionManager.registerRateLimiter(event, limiter);
     }
+
+    private void executeHandler(SigHandler handler, Object sender, Object... params) throws SignalProcessingException {
+        try {
+            // 确保第一个参数始终是SignalContext
+            SignalContext context = findContext(params);
+            if (context == null) {
+                context = new SignalContext();
+                Object[] newParams = new Object[params.length + 1];
+                newParams[0] = context;
+                System.arraycopy(params, 0, newParams, 1, params.length);
+                params = newParams;
+            }
+
+            handler.getHandler().handle(sender, params);
+        } catch (Exception e) {
+            throw new SignalProcessingException("Signal handler execution failed: "+ e.getCause(), 1001);
+        }
+    }
+
+    private SignalContext findContext(Object... params) {
+        for (Object param : params) {
+            if (param instanceof SignalContext) {
+                return (SignalContext) param;
+            }
+        }
+        return null;
+    }
+
+    public Set<String> getRegisteredEvents() {
+        return Collections.unmodifiableSet(sigHandlers.keySet());
+    }
+
 }

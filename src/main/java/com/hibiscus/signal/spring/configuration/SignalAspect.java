@@ -42,7 +42,7 @@ public class SignalAspect implements ApplicationContextAware {
     private ApplicationContext applicationContext;
     private volatile boolean initialized = false;
 
-    private static Logger log = LoggerFactory.getLogger(SignalAspect.class);
+    private static final Logger log = LoggerFactory.getLogger(SignalAspect.class);
 
     /**
      * Constructs the SignalAspect with a provided Signals instance.
@@ -98,8 +98,10 @@ public class SignalAspect implements ApplicationContextAware {
 
         SignalContext context = new SignalContext();
         context.setIntermediateValues(intermediateData);
-
         context.setAttributes(replaceNullValues(requestParams));
+
+        context.initTrace(signalEmitter.value());
+        SignalContextCollector.collectTraceInfo(context);
 
         // Emit signal
         signals.emit(event, joinPoint.getTarget(),signalCallback, errorHandler::handle, context);
@@ -131,33 +133,38 @@ public class SignalAspect implements ApplicationContextAware {
         if (method != null) {
             signals.connect(event, (sender, params) -> {
                 try {
-                    method.invoke(sender, params);
+                    SignalContext context = findContext(params);
+                    if (context == null) {
+                        log.warn("Missing SignalContext for event: {}", event);
+                        return;
+                    }
+                    method.invoke(sender, context);
                 } catch (Exception e) {
                     log.error("Error invoking handler for event: " + event, e);
                 }
-            },signalConfig);
+            }, signalConfig);
             log.debug("Handler bound for event: " + event);
         }
     }
 
     /**
-     * Extracts the method from the application context based on annotation metadata.
+     * Resolves the target method defined in the {@link SignalHandler} annotation.
+     * It expects the method to accept a single {@link SignalContext} parameter.
      *
-     * @param signalHandler the annotation containing method details
-     * @return the resolved Method, or null if not found
+     * @param signalHandler the annotation containing target class and method name
+     * @return the resolved {@link Method} object, or null if the method is not found or signature mismatch
      */
     private Method getMethodFromAnnotation(SignalHandler signalHandler) {
-        String event = signalHandler.value();
         try {
-            Object bean = applicationContext.getBean(signalHandler.target());
-            Class<?> originalClass = AopUtils.getTargetClass(bean); // 获取原始类
-            return originalClass.getMethod(signalHandler.methodName(), SignalContext.class);
+            return signalHandler.target().getMethod(
+                    signalHandler.methodName(),
+                    SignalContext.class // 明确要求使用SignalContext参数
+            );
         } catch (NoSuchMethodException e) {
-            log.error("No method found for event handler: " + event, e);
-        } catch (Exception e) {
-            log.error("Failed to resolve method for SignalHandler: " + event, e);
+            log.error("Method signature should be: {}(SignalContext)",
+                    signalHandler.methodName());
+            return null;
         }
-        return null;
     }
 
     /**
@@ -183,13 +190,7 @@ public class SignalAspect implements ApplicationContextAware {
                         Object targetBean = applicationContext.getBean(annotation.target());
 
                         Method targetMethod;
-                        try {
-                            targetMethod = annotation.target()
-                                    .getMethod(annotation.methodName(), SignalContext.class);
-                        } catch (NoSuchMethodException e) {
-                            log.error("Cannot find method: {}.{}. The method signature should be (SignalContext).", annotation.target().getSimpleName(), annotation.methodName(), e);
-                            continue;
-                        }
+                        targetMethod = getMethodFromAnnotation(annotation);
 
                         SignalConfig signalConfig = new SignalConfig.Builder()
                                 .async(annotation.async())
@@ -205,13 +206,8 @@ public class SignalAspect implements ApplicationContextAware {
 
                         signals.connect(annotation.value(), (sender, params) -> {
                             try {
-                                for (Object param : params) {
-                                    if (param instanceof SignalContext) {
-                                        targetMethod.invoke(targetBean, param);
-                                        return;
-                                    }
-                                }
-                                log.warn("SignalContext parameter not found, skipping method call.: {}.{}", annotation.target().getSimpleName(), annotation.methodName());
+                                SignalContext context = (SignalContext) params[0];
+                                targetMethod.invoke(targetBean, context);
                             } catch (Exception e) {
                                 log.error("Signal processor execution failure: {}.{}()", annotation.target().getSimpleName(), annotation.methodName(), e);
                             }
@@ -231,6 +227,14 @@ public class SignalAspect implements ApplicationContextAware {
         }
     }
 
+    /**
+     * Replaces null values in a parameter map with the string "null".
+     * This ensures that context attributes are fully populated for traceability,
+     * and avoids NullPointerExceptions in downstream processing or logging.
+     *
+     * @param original the original map possibly containing null values
+     * @return a new map with the same keys and no null values
+     */
     private Map<String, Object> replaceNullValues(Map<String, Object> original) {
         Map<String, Object> result = new HashMap<>();
         for (Map.Entry<String, Object> entry : original.entrySet()) {
@@ -239,4 +243,19 @@ public class SignalAspect implements ApplicationContextAware {
         return result;
     }
 
+    /**
+     * Searches the provided parameter array for a {@link SignalContext} instance.
+     * This is typically used to extract the context passed during signal emission.
+     *
+     * @param params the parameter list from a signal handler invocation
+     * @return the first {@link SignalContext} found, or null if none exists
+     */
+    private SignalContext findContext(Object[] params) {
+        for (Object param : params) {
+            if (param instanceof SignalContext) {
+                return (SignalContext) param;
+            }
+        }
+        return null;
+    }
 }
