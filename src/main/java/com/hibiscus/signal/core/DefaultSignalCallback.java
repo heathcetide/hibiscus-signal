@@ -1,5 +1,6 @@
 package com.hibiscus.signal.core;
 
+import com.hibiscus.signal.spring.configuration.SignalContextCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class DefaultSignalCallback implements SignalCallback {
@@ -18,6 +19,17 @@ public class DefaultSignalCallback implements SignalCallback {
 
     @Override
     public void onComplete(String event, Object sender, Object... params) {
+        SignalContext context = null;
+        for (Object param : params) {
+            if (param instanceof SignalContext) {
+                context = (SignalContext) param;
+                break;
+            }
+        }
+
+        if (context != null) {
+            SignalContextCollector.logSpanTrace(context);
+        }
         log.info("Signal [{}] processing completed by [{}]. Parameters: {}", event, sender.getClass().getSimpleName(), params);
     }
 }

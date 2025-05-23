@@ -2,18 +2,20 @@ package com.hibiscus.signal.core;
 
 import com.hibiscus.signal.utils.SnowflakeIdGenerator;
 
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SignalContext {
 
     private final Map<String, Object> attributes;
     private final Map<String, Object> intermediateValues;
-
     private String traceId;
     private String eventId;
 
+    private final List<Span> spans = new CopyOnWriteArrayList<>();
+
+    private String parentSpanId;
 
     public SignalContext() {
         this.attributes = new ConcurrentHashMap<>();
@@ -76,11 +78,83 @@ public class SignalContext {
     public String getTraceId() { return traceId; }
     public String getEventId() { return eventId; }
 
+    public String getParentSpanId() {
+        return parentSpanId;
+    }
+
+    public void setParentSpanId(String parentSpanId) {
+        this.parentSpanId = parentSpanId;
+    }
+    public void addSpan(Span span) {
+
+        spans.add(span);
+    }
+
+    public List<Span> getSpans() {
+        return new ArrayList<>(spans);
+    }
     @Override
     public String toString() {
         return "SignalContext{" +
                 "attributes=" + attributes +
                 ", intermediateValues=" + intermediateValues +
                 '}';
+    }
+
+    public static class Span {
+        private String spanId;
+        private String parentSpanId;
+        private String operation;
+        private long startTime;
+        private long endTime;
+        private Map<String, Object> metadata = new HashMap<>();
+
+        public String getSpanId() {
+            return spanId;
+        }
+
+        public void setSpanId(String spanId) {
+            this.spanId = spanId;
+        }
+
+        public String getParentSpanId() {
+            return parentSpanId;
+        }
+
+        public void setParentSpanId(String parentSpanId) {
+            this.parentSpanId = parentSpanId;
+        }
+
+        public String getOperation() {
+            return operation;
+        }
+
+        public void setOperation(String operation) {
+            this.operation = operation;
+        }
+
+        public long getStartTime() {
+            return startTime;
+        }
+
+        public void setStartTime(long startTime) {
+            this.startTime = startTime;
+        }
+
+        public long getEndTime() {
+            return endTime;
+        }
+
+        public void setEndTime(long endTime) {
+            this.endTime = endTime;
+        }
+
+        public Map<String, Object> getMetadata() {
+            return metadata;
+        }
+
+        public void setMetadata(Map<String, Object> metadata) {
+            this.metadata = metadata;
+        }
     }
 }

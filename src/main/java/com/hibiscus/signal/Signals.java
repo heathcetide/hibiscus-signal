@@ -190,14 +190,34 @@ public class Signals {
             return;
         }
 
+        SignalContext context = findContext(params);
+        if (context == null) {
+            context = new SignalContext();
+            Object[] newParams = new Object[params.length + 1];
+            newParams[0] = context;
+            System.arraycopy(params, 0, newParams, 1, params.length);
+            params = newParams;
+        }
+
         // 获取事件的拦截器并按优先级排序
         List<SignalInterceptor> interceptors = signalInterceptors.get(event);
 
         if (interceptors != null){
             // 遍历拦截器执行 beforeHandle
             for (SignalInterceptor interceptor : interceptors) {
-                if (!interceptor.beforeHandle(event, sender, params)) {
-                    return; // 如果某个拦截器阻止了信号传播，退出
+                String spanId = UUID.randomUUID().toString();
+                String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+                SignalContext.Span span = new SignalContext.Span();
+                span.setSpanId(spanId);
+                span.setParentSpanId(parentSpanId);
+                span.setOperation("Interceptor: " + interceptor.getClass().getSimpleName());
+                span.setStartTime(System.currentTimeMillis());
+                context.setParentSpanId(spanId);
+                boolean allowed = interceptor.beforeHandle(event, sender, params);
+                span.setEndTime(System.currentTimeMillis());
+                context.addSpan(span);
+                if (!allowed) {
+                    return;
                 }
             }
         }
@@ -207,7 +227,22 @@ public class Signals {
 
         // 遍历过滤器，如果有任何一个过滤器返回 false，则停止传播
         for (SignalFilter filter : filters) {
-            if (!filter.filter(event, sender, params)) {
+            String spanId = UUID.randomUUID().toString();
+            String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+
+            SignalContext.Span span = new SignalContext.Span();
+            span.setSpanId(spanId);
+            span.setParentSpanId(parentSpanId);
+            span.setOperation("Filter: " + filter.getClass().getSimpleName());
+            span.setStartTime(System.currentTimeMillis());
+
+            context.setParentSpanId(spanId);
+            boolean pass = filter.filter(event, sender, params);
+
+            span.setEndTime(System.currentTimeMillis());
+            context.addSpan(span);
+
+            if (!pass) {
                 return;
             }
         }
@@ -216,7 +251,20 @@ public class Signals {
         List<SignalTransformer> transformers = signalTransformers.get(event);
         if (transformers != null) {
             for (SignalTransformer transformer : transformers) {
+                String spanId = UUID.randomUUID().toString();
+                String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+
+                SignalContext.Span span = new SignalContext.Span();
+                span.setSpanId(spanId);
+                span.setParentSpanId(parentSpanId);
+                span.setOperation("Transformer: " + transformer.getClass().getSimpleName());
+                span.setStartTime(System.currentTimeMillis());
+
+                context.setParentSpanId(spanId);
                 params = transformer.transform(event, sender, params);
+
+                span.setEndTime(System.currentTimeMillis());
+                context.addSpan(span);
             }
         }
 
@@ -247,14 +295,34 @@ public class Signals {
             return;
         }
 
+        SignalContext context = findContext(params);
+        if (context == null) {
+            context = new SignalContext();
+            Object[] newParams = new Object[params.length + 1];
+            newParams[0] = context;
+            System.arraycopy(params, 0, newParams, 1, params.length);
+            params = newParams;
+        }
+
         // 获取事件的拦截器并按优先级排序
         List<SignalInterceptor> interceptors = signalInterceptors.get(event);
 
         if (interceptors != null){
             // 遍历拦截器执行 beforeHandle
             for (SignalInterceptor interceptor : interceptors) {
-                if (!interceptor.beforeHandle(event, sender, params)) {
-                    return; // 如果某个拦截器阻止了信号传播，退出
+                String spanId = UUID.randomUUID().toString();
+                String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+                SignalContext.Span span = new SignalContext.Span();
+                span.setSpanId(spanId);
+                span.setParentSpanId(parentSpanId);
+                span.setOperation("Interceptor: " + interceptor.getClass().getSimpleName());
+                span.setStartTime(System.currentTimeMillis());
+                context.setParentSpanId(spanId);
+                boolean allowed = interceptor.beforeHandle(event, sender, params);
+                span.setEndTime(System.currentTimeMillis());
+                context.addSpan(span);
+                if (!allowed) {
+                    return;
                 }
             }
         } else {
@@ -266,7 +334,22 @@ public class Signals {
 
         // 遍历过滤器，如果有任何一个过滤器返回 false，则停止传播
         for (SignalFilter filter : filters) {
-            if (!filter.filter(event, sender, params)) {
+            String spanId = UUID.randomUUID().toString();
+            String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+
+            SignalContext.Span span = new SignalContext.Span();
+            span.setSpanId(spanId);
+            span.setParentSpanId(parentSpanId);
+            span.setOperation("Filter: " + filter.getClass().getSimpleName());
+            span.setStartTime(System.currentTimeMillis());
+
+            context.setParentSpanId(spanId);
+            boolean pass = filter.filter(event, sender, params);
+
+            span.setEndTime(System.currentTimeMillis());
+            context.addSpan(span);
+
+            if (!pass) {
                 if (callback != null) {
                     callback.onError(event, sender, new RuntimeException("Signal propagation stopped by filter"), params);
                     callback.onComplete(event, sender, params);
@@ -279,7 +362,20 @@ public class Signals {
         List<SignalTransformer> transformers = signalTransformers.get(event);
         if (transformers != null) {
             for (SignalTransformer transformer : transformers) {
+                String spanId = UUID.randomUUID().toString();
+                String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+
+                SignalContext.Span span = new SignalContext.Span();
+                span.setSpanId(spanId);
+                span.setParentSpanId(parentSpanId);
+                span.setOperation("Transformer: " + transformer.getClass().getSimpleName());
+                span.setStartTime(System.currentTimeMillis());
+
+                context.setParentSpanId(spanId);
                 params = transformer.transform(event, sender, params);
+
+                span.setEndTime(System.currentTimeMillis());
+                context.addSpan(span);
             }
         }
 
@@ -309,7 +405,7 @@ public class Signals {
         for (SigHandler sig : sigs) {
             long startTime = System.currentTimeMillis();
             try {
-                executeWithRetry(event, sig, sender, config, params);
+                executeWithTracing(event, sig, sender, config, params);
                 if (config.isRecordMetrics()) {
                     metrics.recordProcessingTime(event, System.currentTimeMillis() - startTime);
                 }
@@ -337,7 +433,7 @@ public class Signals {
             CompletableFuture.runAsync(() -> {
                 long startTime = System.currentTimeMillis();
                 try {
-                    executeWithRetry(event, sig, sender, config, params);
+                    executeWithTracing(event, sig, sender, config, params);
                     if (config.isRecordMetrics()) {
                         metrics.recordProcessingTime(event, System.currentTimeMillis() - startTime);
                     }
@@ -386,6 +482,36 @@ public class Signals {
             throw lastException;
         }
     }
+
+    private void executeWithTracing(String event, SigHandler sig, Object sender, SignalConfig config, Object... params) throws Exception {
+        SignalContext context = findContext(params);
+        if (context == null) {
+            context = new SignalContext();
+            Object[] newParams = new Object[params.length + 1];
+            newParams[0] = context;
+            System.arraycopy(params, 0, newParams, 1, params.length);
+            params = newParams;
+        }
+
+        String spanId = UUID.randomUUID().toString();
+        String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+
+        SignalContext.Span span = new SignalContext.Span();
+        span.setSpanId(spanId);
+        span.setParentSpanId(parentSpanId);
+        span.setOperation(sig.getHandler().getClass().getSimpleName());
+        span.setStartTime(System.currentTimeMillis());
+
+        context.setParentSpanId(spanId); // 为下一个 span 做准备
+
+        try {
+            executeWithRetry(event, sig, sender, config, params);
+        } finally {
+            span.setEndTime(System.currentTimeMillis());
+            context.addSpan(span);
+        }
+    }
+
 
     private void executeWithTimeout(SigHandler sig, Object sender, long timeoutMs, Object... params)
             throws Exception {
@@ -472,6 +598,7 @@ public class Signals {
         try {
             // 确保第一个参数始终是SignalContext
             SignalContext context = findContext(params);
+
             if (context == null) {
                 context = new SignalContext();
                 Object[] newParams = new Object[params.length + 1];

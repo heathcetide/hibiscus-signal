@@ -3,7 +3,10 @@ package com.hibiscus.signal.spring.configuration;
 import com.alibaba.ttl.TransmittableThreadLocal;
 import com.hibiscus.signal.core.SignalContext;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -98,4 +101,49 @@ public class SignalContextCollector {
         traceInfo.put("eventId", context.getEventId());
         collect("_trace", traceInfo);
     }
+
+    public static void logSpanTrace(SignalContext context) {
+        List<SignalContext.Span> spans = context.getSpans();
+        if (spans.isEmpty()) {
+            System.out.println("[TRACE] No spans collected.");
+            return;
+        }
+
+        // 构建 span 树
+        Map<String, List<SignalContext.Span>> childMap = new HashMap<>();
+        Map<String, SignalContext.Span> spanMap = new HashMap<>();
+        for (SignalContext.Span span : spans) {
+            spanMap.put(span.getSpanId(), span);
+            childMap.computeIfAbsent(span.getParentSpanId(), k -> new ArrayList<>()).add(span);
+        }
+
+        // 找 root span（即 parentSpanId 不在 spanId 集合中）
+        for (SignalContext.Span span : spans) {
+            if (!spanMap.containsKey(span.getParentSpanId())) {
+                printSpanTree(span, childMap, 0);
+            }
+        }
+    }
+
+    private static void printSpanTree(SignalContext.Span span, Map<String, List<SignalContext.Span>> childMap, int level) {
+        String indent = repeat("  ",level);
+        System.out.printf("%s- [%s] %s (%dms)%n", indent, span.getSpanId(), span.getOperation(),
+                span.getEndTime() - span.getStartTime());
+
+        List<SignalContext.Span> children = childMap.get(span.getSpanId());
+        if (children != null) {
+            for (SignalContext.Span child : children) {
+                printSpanTree(child, childMap, level + 1);
+            }
+        }
+    }
+
+    private static String repeat(String str, int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            sb.append(str);
+        }
+        return sb.toString();
+    }
+
 }
