@@ -102,7 +102,7 @@ public class SignalAspect implements ApplicationContextAware {
 
         context.initTrace(signalEmitter.value());
         SignalContextCollector.collectTraceInfo(context);
-
+        signals.getMetrics().recordTrace(context);
         // Emit signal
         signals.emit(event, joinPoint.getTarget(),signalCallback, errorHandler::handle, context);
         return result;
