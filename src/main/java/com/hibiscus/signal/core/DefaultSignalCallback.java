@@ -1,6 +1,7 @@
 package com.hibiscus.signal.core;
 
 import com.hibiscus.signal.spring.configuration.SignalContextCollector;
+import com.hibiscus.signal.utils.SignalTracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class DefaultSignalCallback implements SignalCallback {
@@ -26,9 +27,8 @@ public class DefaultSignalCallback implements SignalCallback {
                 break;
             }
         }
-
         if (context != null) {
-            SignalContextCollector.logSpanTrace(context);
+            SignalTracer.printTraceTree(context);
         }
         log.info("Signal [{}] processing completed by [{}]. Parameters: {}", event, sender.getClass().getSimpleName(), params);
     }

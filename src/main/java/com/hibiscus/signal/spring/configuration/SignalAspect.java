@@ -131,6 +131,7 @@ public class SignalAspect implements ApplicationContextAware {
         Method method = getMethodFromAnnotation(signalHandler);
 
         if (method != null) {
+            String handlerName = method.getDeclaringClass().getSimpleName() + "#" + method.getName();
             signals.connect(event, (sender, params) -> {
                 try {
                     SignalContext context = findContext(params);
@@ -142,7 +143,7 @@ public class SignalAspect implements ApplicationContextAware {
                 } catch (Exception e) {
                     log.error("Error invoking handler for event: " + event, e);
                 }
-            }, signalConfig);
+            }, signalConfig, handlerName);
             log.debug("Handler bound for event: " + event);
         }
     }

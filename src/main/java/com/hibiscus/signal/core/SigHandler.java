@@ -34,6 +34,8 @@ public class SigHandler {
 
     private SignalContext signalContext;
 
+    private String handlerName;
+
     public SigHandler(long id, EventType evType, String signalName, SignalHandler handler, SignalPriority priority) {
         this.id = id;
         this.evType = evType;
@@ -82,6 +84,14 @@ public class SigHandler {
 
     public SignalContext getSignalContext() {
         return signalContext;
+    }
+
+    public String getHandlerName() {
+        return handlerName;
+    }
+
+    public void setHandlerName(String handlerName) {
+        this.handlerName = handlerName;
     }
 
     public void setSignalContext(SignalContext signalContext) {

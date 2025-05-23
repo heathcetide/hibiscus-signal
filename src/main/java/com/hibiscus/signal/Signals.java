@@ -84,10 +84,31 @@ public class Signals {
     /**
      * 绑定事件
      */
+    public void connect(String event, SignalHandler handler, SignalConfig signalConfig, String handlerName) {
+        signalConfigs.put(event, signalConfig);
+        long id = SnowflakeIdGenerator.nextId();
+        SigHandler signalHandler = new SigHandler(id, ADD_HANDLER, event, handler, signalConfig.getPriority());
+
+        // 设置 handlerName
+        signalHandler.setHandlerName(handlerName != null ? handlerName : handler.getClass().getName());
+        eventQueue.offer(signalHandler);
+        processEvents();
+    }
+
+
+    /**
+     * 绑定事件
+     */
     public long connect(String event, SignalHandler handler, SignalConfig signalConfig){
         signalConfigs.put(event, signalConfig);
         long id = SnowflakeIdGenerator.nextId();
         SigHandler signalHandler = new SigHandler(id,ADD_HANDLER, event, handler, signalConfig.getPriority());
+        // 设置 handlerName，用于 trace span 识别
+        String handlerName = handler.getClass().getName();
+        if (handlerName.contains("$$Lambda")) {
+            handlerName = "Handler: " + event; // 或者设置一个更有业务含义的名称
+        }
+        signalHandler.setHandlerName(handlerName);
         eventQueue.offer(signalHandler);
         processEvents();
         return id;
@@ -108,6 +129,12 @@ public class Signals {
         long id = SnowflakeIdGenerator.nextId();
         SigHandler signalHandler = new SigHandler(id,ADD_HANDLER, event, handler, signalConfig.getPriority());
         signalHandler.setSignalContext(context);
+        // 设置 handlerName，用于 trace span 识别
+        String handlerName = handler.getClass().getName();
+        if (handlerName.contains("$$Lambda")) {
+            handlerName = "Handler: " + event; // 或者设置一个更有业务含义的名称
+        }
+        signalHandler.setHandlerName(handlerName);
         eventQueue.offer(signalHandler);
         processEvents();
         return id;
@@ -499,10 +526,12 @@ public class Signals {
         SignalContext.Span span = new SignalContext.Span();
         span.setSpanId(spanId);
         span.setParentSpanId(parentSpanId);
-        span.setOperation(sig.getHandler().getClass().getSimpleName());
+        String op = sig.getHandlerName() != null ? sig.getHandlerName() : "Handler: Unknown";
+        span.setOperation(op);
+
         span.setStartTime(System.currentTimeMillis());
 
-        context.setParentSpanId(spanId); // 为下一个 span 做准备
+        context.setParentSpanId(spanId);
 
         try {
             executeWithRetry(event, sig, sender, config, params);
