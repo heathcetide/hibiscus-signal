@@ -211,6 +211,7 @@ public class Signals {
      * 发射信号
      */
     public void emit(String event, Object sender, Consumer<Throwable> errorHandler, Object... params) {
+
         if (protectionManager.isBlocked(event)) {
             return;
         }
@@ -542,18 +543,20 @@ public class Signals {
 
     private void executeWithTimeout(SigHandler sig, Object sender, long timeoutMs, Object... params)
             throws Exception {
-        Future<?> future = executorService.submit(() -> {
-            executeHandler(sig, sender, params);
-            return null;
-        });
+
+        CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
+            try {
+                executeHandler(sig, sender, params);
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }, executorService);
 
         try {
-            future.get(timeoutMs, TimeUnit.MILLISECONDS);
+            task.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-            future.cancel(true);
-            throw new SignalProcessingException("Signal handler execution timed out: "+ e.getMessage(), 1001);
-        } catch (ExecutionException e) {
-            throw new SignalProcessingException("Signal handler execution failed: "+ e.getCause(), 1001);
+            task.cancel(true); // 尝试中断
+            throw new SignalProcessingException("Signal handler execution timed out", 1001);
         }
     }
 

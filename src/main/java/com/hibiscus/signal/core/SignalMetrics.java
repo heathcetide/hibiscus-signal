@@ -34,6 +34,12 @@ public class SignalMetrics {
     private final Map<String, Long> lastEmitTime = new ConcurrentHashMap<>();
 
     private final Map<String, SignalContext> eventTraces = new ConcurrentHashMap<>();
+
+    // 新增处理计数
+    private final AtomicLong processedCount = new AtomicLong();
+    private final Map<String, AtomicLong> processedCountByEvent = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastProcessTime = new ConcurrentHashMap<>();
+
     public void recordEmit(String signalName) {
         emitCount.computeIfAbsent(signalName, k -> new AtomicLong()).incrementAndGet();
         lastEmitTime.put(signalName, System.currentTimeMillis());
@@ -82,4 +88,24 @@ public class SignalMetrics {
         return eventTraces.get(traceId);
     }
 
+    public void recordProcessed() {
+        processedCount.incrementAndGet();
+    }
+
+    public void recordProcessed(String event) {
+        processedCountByEvent.computeIfAbsent(event, k -> new AtomicLong()).incrementAndGet();
+        lastProcessTime.put(event, System.currentTimeMillis());
+    }
+
+    public long getProcessedCount() {
+        return processedCount.get();
+    }
+
+    public long getProcessedCount(String event) {
+        return processedCountByEvent.getOrDefault(event, new AtomicLong()).get();
+    }
+
+    public Long getLastProcessTime(String event) {
+        return lastProcessTime.get(event);
+    }
 }
