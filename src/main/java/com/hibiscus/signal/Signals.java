@@ -1,9 +1,12 @@
 package com.hibiscus.signal;
 
 import com.hibiscus.signal.config.SignalConfig;
+import com.hibiscus.signal.config.SignalPriority;
 import com.hibiscus.signal.core.*;
 import com.hibiscus.signal.exceptions.SignalProcessingException;
 import com.hibiscus.signal.utils.SnowflakeIdGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -54,7 +57,7 @@ public class Signals {
     /**
      * 事件队列
      */
-    private final PriorityBlockingQueue<SigHandler> eventQueue = new PriorityBlockingQueue<>(11, Comparator.comparingInt(event -> event.getPriority().getValue()));
+    private final EnumMap<SignalPriority, BlockingQueue<SigHandler>> priorityQueues = new EnumMap<>(SignalPriority.class);
 
     /**
      * 信号转换器集合
@@ -69,9 +72,15 @@ public class Signals {
 
     private final SignalProtectionManager protectionManager = new SignalProtectionManager();
 
+    private static final Logger log = LoggerFactory.getLogger(Signals.class);
+
 
     public Signals(@Qualifier("signalExecutor") ExecutorService executorService) {
         this.executorService = executorService;
+        // 初始化三级队列
+        for (SignalPriority p : SignalPriority.values()) {
+            priorityQueues.put(p, new LinkedBlockingQueue<>());
+        }
     }
 
     /**
@@ -85,13 +94,13 @@ public class Signals {
      * 绑定事件
      */
     public void connect(String event, SignalHandler handler, SignalConfig signalConfig, String handlerName) {
-        signalConfigs.put(event, signalConfig);
+        signalConfigs.computeIfAbsent(event, k -> signalConfig);
         long id = SnowflakeIdGenerator.nextId();
         SigHandler signalHandler = new SigHandler(id, ADD_HANDLER, event, handler, signalConfig.getPriority());
 
         // 设置 handlerName
         signalHandler.setHandlerName(handlerName != null ? handlerName : handler.getClass().getName());
-        eventQueue.offer(signalHandler);
+        priorityQueues.get(signalConfig.getPriority()).offer(signalHandler);
         processEvents();
     }
 
@@ -100,16 +109,11 @@ public class Signals {
      * 绑定事件
      */
     public long connect(String event, SignalHandler handler, SignalConfig signalConfig){
-        signalConfigs.put(event, signalConfig);
+        signalConfigs.computeIfAbsent(event, k -> signalConfig);
         long id = SnowflakeIdGenerator.nextId();
         SigHandler signalHandler = new SigHandler(id,ADD_HANDLER, event, handler, signalConfig.getPriority());
-        // 设置 handlerName，用于 trace span 识别
-        String handlerName = handler.getClass().getName();
-        if (handlerName.contains("$$Lambda")) {
-            handlerName = "Handler: " + event; // 或者设置一个更有业务含义的名称
-        }
-        signalHandler.setHandlerName(handlerName);
-        eventQueue.offer(signalHandler);
+        // 根据配置的优先级放入对应队列
+        priorityQueues.get(signalConfig.getPriority()).offer(signalHandler);
         processEvents();
         return id;
     }
@@ -125,17 +129,12 @@ public class Signals {
      * 绑定事件
      */
     public long connect(String event, SignalHandler handler, SignalConfig signalConfig, SignalContext context){
-        signalConfigs.put(event, signalConfig);
+        signalConfigs.computeIfAbsent(event, k -> signalConfig);
         long id = SnowflakeIdGenerator.nextId();
         SigHandler signalHandler = new SigHandler(id,ADD_HANDLER, event, handler, signalConfig.getPriority());
         signalHandler.setSignalContext(context);
-        // 设置 handlerName，用于 trace span 识别
-        String handlerName = handler.getClass().getName();
-        if (handlerName.contains("$$Lambda")) {
-            handlerName = "Handler: " + event; // 或者设置一个更有业务含义的名称
-        }
-        signalHandler.setHandlerName(handlerName);
-        eventQueue.offer(signalHandler);
+        // 根据配置的优先级放入对应队列
+        priorityQueues.get(signalConfig.getPriority()).offer(signalHandler);
         processEvents();
         return id;
     }
@@ -143,7 +142,7 @@ public class Signals {
     public void disconnect(String event, long id) {
         SignalConfig config = signalConfigs.getOrDefault(event, new SignalConfig.Builder().build());
         SigHandler ev = new SigHandler(id, EventType.REMOVE_HANDLER, event, null, config.getPriority());
-        eventQueue.offer(ev);
+        priorityQueues.get(config.getPriority()).offer(ev);
         processEvents();
     }
 
@@ -151,7 +150,7 @@ public class Signals {
         SignalConfig config = signalConfigs.getOrDefault(event, new SignalConfig.Builder().build());
         SigHandler ev = new SigHandler(id, EventType.REMOVE_HANDLER, event, null, config.getPriority());
         ev.setSignalContext(context);
-        eventQueue.offer(ev);
+        priorityQueues.get(config.getPriority()).offer(ev);
         processEvents();
     }
 
@@ -161,52 +160,51 @@ public class Signals {
     public void processEvents(){
         if (inLoop) return;
 
-        synchronized (this){
-            if (eventQueue.isEmpty()) return;
+        synchronized (this) {
+            if (allQueuesEmpty()) return;
             inLoop = true;
         }
 
-        try{
-            SigHandler sigHandler;
-            while((sigHandler = eventQueue.poll()) != null){
-                List<SigHandler> sigs = sigHandlers.computeIfAbsent(sigHandler.getSignalName(), k -> new CopyOnWriteArrayList<>());
-                SignalConfig config = signalConfigs.computeIfAbsent(sigHandler.getSignalName(), k -> new SignalConfig.Builder().build());
-                switch (sigHandler.getEvType()){
-                    case ADD_HANDLER: // evTypeAdd
-                        if (sigs.size() < config.getMaxHandlers()) {
-                            sigs.add(sigHandler);
-                            if (config.isRecordMetrics()) {
-                                metrics.recordHandlerAdded(sigHandler.getSignalName());
-                            }
-                        }
-                        break;
-                    case REMOVE_HANDLER: // evTypeRemove
-                        SigHandler finalEvent = sigHandler;
-                        sigs.removeIf(sh -> sh.getId() == finalEvent.getId());
-                        if (config.isRecordMetrics()) {
-                            metrics.recordHandlerRemoved(sigHandler.getSignalName());
-                        }
-                        break;
-                    case PAUSE_SIGNAL:
-                        // 处理暂停信号的逻辑
-                        break;
-                    case RESUME_SIGNAL:
-                        // 处理恢复信号的逻辑
-                        break;
-                    case BROADCAST:
-                        // 处理广播信号的逻辑
-                        break;
-                    case REFRESH_CONFIG:
-                        // 处理刷新配置的逻辑
-                        break;
-                    default:
-                        // 默认行为
-                        break;
-                }
-            }
-        }finally {
+        try {
+            // 按优先级顺序处理：HIGH -> MEDIUM -> LOW
+            processPriorityQueue(SignalPriority.HIGH);
+            processPriorityQueue(SignalPriority.MEDIUM);
+            processPriorityQueue(SignalPriority.LOW);
+        } finally {
             inLoop = false;
         }
+    }
+
+    private void processPriorityQueue(SignalPriority priority) {
+        BlockingQueue<SigHandler> queue = priorityQueues.get(priority);
+        SigHandler sigHandler;
+        while ((sigHandler = queue.poll()) != null) {
+            List<SigHandler> sigs = sigHandlers.computeIfAbsent(sigHandler.getSignalName(), k -> new CopyOnWriteArrayList<>());
+            SignalConfig config = signalConfigs.computeIfAbsent(sigHandler.getSignalName(), k -> new SignalConfig.Builder().build());
+            switch (sigHandler.getEvType()){
+                case ADD_HANDLER: // evTypeAdd
+                    if (sigs.size() < config.getMaxHandlers()) {
+                        sigs.add(sigHandler);
+                        if (config.isRecordMetrics()) {
+                            metrics.recordHandlerAdded(sigHandler.getSignalName());
+                        }
+                    }
+                    break;
+                case REMOVE_HANDLER: // evTypeRemove
+                    SigHandler finalEvent = sigHandler;
+                    sigs.removeIf(sh -> sh.getId() == finalEvent.getId());
+                    if (config.isRecordMetrics()) {
+                        metrics.recordHandlerRemoved(sigHandler.getSignalName());
+                    }
+                    break;
+                default:
+                    log.warn("未知事件类型 {}", sigHandler.getEvType());
+            }
+        }
+    }
+
+    private boolean allQueuesEmpty() {
+        return priorityQueues.values().stream().allMatch(Queue::isEmpty);
     }
 
     /**
@@ -564,6 +562,7 @@ public class Signals {
         if (config.isRecordMetrics()) {
             metrics.recordError(event);
         }
+        log.error("Signal [{}] handler error: {}", event, e.getMessage(), e);
         if (errorHandler != null) {
             errorHandler.accept(e);
         }
@@ -599,8 +598,9 @@ public class Signals {
 
     private List<SignalFilter> getSortedFilters(String event) {
         List<SignalFilter> filters = signalFilters.getOrDefault(event, Collections.emptyList());
-        filters.sort(Comparator.comparingInt(SignalFilter::getPriority));
-        return filters;
+        List<SignalFilter> copy = new ArrayList<>(filters);
+        copy.sort(Comparator.comparingInt(SignalFilter::getPriority));
+        return copy;
     }
 
     /**
@@ -615,7 +615,8 @@ public class Signals {
      */
     public void addSignalInterceptor(String event, SignalInterceptor interceptor) {
         signalInterceptors.computeIfAbsent(event, k -> new ArrayList<>()).add(interceptor);
-        signalInterceptors.get(event).sort(Comparator.comparingInt(SignalInterceptor::getOrder));
+        // 不在原列表排序
+        log.info("Interceptor [{}] added to event [{}]", interceptor.getClass().getSimpleName(), event);
     }
 
     public void configureProtection(String event, CircuitBreaker breaker, RateLimiter limiter) {
@@ -638,7 +639,7 @@ public class Signals {
 
             handler.getHandler().handle(sender, params);
         } catch (Exception e) {
-            throw new SignalProcessingException("Signal handler execution failed: "+ e.getCause(), 1001);
+            throw new SignalProcessingException("Signal handler execution failed: "+ e.getMessage(), 1001, e);
         }
     }
 
@@ -654,5 +655,6 @@ public class Signals {
     public Set<String> getRegisteredEvents() {
         return Collections.unmodifiableSet(sigHandlers.keySet());
     }
+
 
 }

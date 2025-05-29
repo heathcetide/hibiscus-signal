@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class DefaultSignalCallback implements SignalCallback {
 
-    private static Logger log = LoggerFactory.getLogger(DefaultSignalCallback.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultSignalCallback.class);
 
     @Override
     public void onSuccess(String event, Object sender, Object... params) {
