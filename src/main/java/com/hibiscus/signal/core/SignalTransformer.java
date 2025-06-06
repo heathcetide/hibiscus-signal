@@ -1,13 +1,21 @@
 package com.hibiscus.signal.core;
 
+/**
+ * Functional interface for signal parameter transformation.
+ * Purpose:
+ * - Allows modifying or transforming signal parameters before they are handled.
+ * - Typically used for data adaptation or enrichment.
+ */
 @FunctionalInterface
 public interface SignalTransformer {
+
     /**
-     * 转换信号参数
-     * @param event 信号名称
-     * @param sender 信号发送者
-     * @param params 原始信号参数
-     * @return 转换后的信号参数
+     * Transforms the parameters of a signal before passing them to the handler.
+     *
+     * @param event   the name of the signal
+     * @param sender  the object that emitted the signal
+     * @param params  the original parameters of the signal
+     * @return the transformed parameters
      */
     Object[] transform(String event, Object sender, Object... params);
 }
