@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService;
 @Configuration
 public class SignalAutoConfiguration {
 
-    /**
+    /*
      * Provides a default {@link Signals} bean if one is not already defined.
      *
      * @return a singleton instance of the signal manager
@@ -47,4 +47,5 @@ public class SignalAutoConfiguration {
     public SignalAspect signalAspect(Signals signals) {
         return new SignalAspect(signals);
     }
+
 }

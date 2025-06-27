@@ -11,8 +11,15 @@ import java.util.LinkedList;
  */
 public class RateLimiter {
 
-    private final int maxRequestsPerSecond;  // Maximum number of allowed requests per second
-    private final Deque<Long> timestamps = new LinkedList<>(); // Timestamps of recent requests
+    /**
+     * Maximum number of allowed requests per second
+     */
+    private final int maxRequestsPerSecond;
+
+    /**
+     * Timestamps of recent requests
+     */
+    private final Deque<Long> timestamps = new LinkedList<>();
 
     /**
      * Constructs a RateLimiter with the specified maximum requests per second.

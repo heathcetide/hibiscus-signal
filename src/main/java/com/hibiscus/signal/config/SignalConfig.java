@@ -214,4 +214,19 @@ public class SignalConfig {
     public boolean isPersistent() {
         return persistent;
     }
+
+    @Override
+    public String toString() {
+        return "SignalConfig{" +
+                "async=" + async +
+                ", maxRetries=" + maxRetries +
+                ", retryDelayMs=" + retryDelayMs +
+                ", maxHandlers=" + maxHandlers +
+                ", timeoutMs=" + timeoutMs +
+                ", recordMetrics=" + recordMetrics +
+                ", priority=" + priority +
+                ", groupName='" + groupName + '\'' +
+                ", persistent=" + persistent +
+                '}';
+    }
 }

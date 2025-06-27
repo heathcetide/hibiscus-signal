@@ -4,12 +4,15 @@ import com.hibiscus.signal.config.SignalConfig;
 import com.hibiscus.signal.config.SignalPriority;
 import com.hibiscus.signal.core.*;
 import com.hibiscus.signal.exceptions.SignalProcessingException;
+import com.hibiscus.signal.spring.config.SignalProperties;
 import com.hibiscus.signal.utils.SnowflakeIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -72,12 +75,19 @@ public class Signals {
 
     private final SignalProtectionManager protectionManager = new SignalProtectionManager();
 
-    private static final Logger log = LoggerFactory.getLogger(Signals.class);
+    /**
+     * Signals Properties
+     */
+    @Autowired
+    private SignalProperties signalProperties;
 
+    /**
+     * 日志记录器
+     */
+    private static final Logger log = LoggerFactory.getLogger(Signals.class);
 
     public Signals(@Qualifier("signalExecutor") ExecutorService executorService) {
         this.executorService = executorService;
-        // 初始化三级队列
         for (SignalPriority p : SignalPriority.values()) {
             priorityQueues.put(p, new LinkedBlockingQueue<>());
         }
@@ -139,6 +149,9 @@ public class Signals {
         return id;
     }
 
+    /**
+     * 解开连接
+     */
     public void disconnect(String event, long id) {
         SignalConfig config = signalConfigs.getOrDefault(event, new SignalConfig.Builder().build());
         SigHandler ev = new SigHandler(id, EventType.REMOVE_HANDLER, event, null, config.getPriority());
@@ -146,6 +159,9 @@ public class Signals {
         processEvents();
     }
 
+    /**
+     * 解开连接
+     */
     public void disconnect(String event, long id, SignalContext context) {
         SignalConfig config = signalConfigs.getOrDefault(event, new SignalConfig.Builder().build());
         SigHandler ev = new SigHandler(id, EventType.REMOVE_HANDLER, event, null, config.getPriority());
@@ -159,12 +175,10 @@ public class Signals {
      */
     public void processEvents(){
         if (inLoop) return;
-
         synchronized (this) {
             if (allQueuesEmpty()) return;
             inLoop = true;
         }
-
         try {
             // 按优先级顺序处理：HIGH -> MEDIUM -> LOW
             processPriorityQueue(SignalPriority.HIGH);
@@ -175,6 +189,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 处理队列为空的情况
+     */
     private void processPriorityQueue(SignalPriority priority) {
         BlockingQueue<SigHandler> queue = priorityQueues.get(priority);
         SigHandler sigHandler;
@@ -203,6 +220,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 判断队列是否为空
+     */
     private boolean allQueuesEmpty() {
         return priorityQueues.values().stream().allMatch(Queue::isEmpty);
     }
@@ -426,6 +446,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 同步发射信号
+     */
     private void emitSync(String event, Object sender, List<SigHandler> sigs,
                           SignalConfig config, Consumer<Throwable> errorHandler,SignalCallback callback,  Object... params) {
         for (SigHandler sig : sigs) {
@@ -453,6 +476,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 异步发送信号
+     */
     private void emitAsync(String event, Object sender, List<SigHandler> sigs,
                            SignalConfig config, Consumer<Throwable> errorHandler, SignalCallback callback,  Object... params) {
         for (SigHandler sig : sigs) {
@@ -482,6 +508,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 执行信号处理函数，并记录处理时间
+     */
     private void executeWithRetry(String event, SigHandler sig, Object sender,
                                   SignalConfig config, Object... params) throws Exception {
         int retries = 0;
@@ -509,6 +538,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 执行信号处理函数，并记录处理时间
+     */
     private void executeWithTracing(String event, SigHandler sig, Object sender, SignalConfig config, Object... params) throws Exception {
         SignalContext context = findContext(params);
         if (context == null) {
@@ -537,10 +569,15 @@ public class Signals {
         } finally {
             span.setEndTime(System.currentTimeMillis());
             context.addSpan(span);
+            if (signalProperties.getPersistent()){
+                SignalPersistence.saveToFile(new SignalPersistenceInfo(sig, config, context, metrics.getAllMetrics()), signalProperties.getPersistenceFile());
+            }
         }
     }
 
-
+    /**
+     * 执行超时处理
+     */
     private void executeWithTimeout(SigHandler sig, Object sender, long timeoutMs, Object... params)
             throws Exception {
 
@@ -560,6 +597,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 处理错误
+     */
     private void handleError(String event, SignalConfig config,
                              Consumer<Throwable> errorHandler, Exception e) {
         if (config.isRecordMetrics()) {
@@ -571,6 +611,9 @@ public class Signals {
         }
     }
 
+    /**
+     * close the executor service
+     */
     public void shutdown() {
         executorService.shutdown();
         try {
@@ -583,6 +626,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 删除信号
+     */
     public void clear(String... events) {
         for (String event : events) {
             sigHandlers.remove(event);
@@ -590,15 +636,23 @@ public class Signals {
         }
     }
 
+    /**
+     * 获取信号统计信息
+     */
     public SignalMetrics getMetrics() {
         return metrics;
     }
 
+    /**
+     * 绑定信号过滤器
+     */
     public void addFilter(String event, SignalFilter filter) {
         signalFilters.computeIfAbsent(event, k -> new ArrayList<>()).add(filter);
     }
 
-
+    /**
+     * 获取信号过滤器
+     */
     private List<SignalFilter> getSortedFilters(String event) {
         List<SignalFilter> filters = signalFilters.getOrDefault(event, Collections.emptyList());
         List<SignalFilter> copy = new ArrayList<>(filters);
@@ -622,11 +676,17 @@ public class Signals {
         log.info("Interceptor [{}] added to event [{}]", interceptor.getClass().getSimpleName(), event);
     }
 
+    /**
+     * 配置信号保护
+     */
     public void configureProtection(String event, CircuitBreaker breaker, RateLimiter limiter) {
         protectionManager.registerCircuitBreaker(event, breaker);
         protectionManager.registerRateLimiter(event, limiter);
     }
 
+    /**
+     * 执行信号处理程序
+     */
     private void executeHandler(SigHandler handler, Object sender, Object... params) throws SignalProcessingException {
         try {
             // 确保第一个参数始终是SignalContext
@@ -646,6 +706,9 @@ public class Signals {
         }
     }
 
+    /**
+     * 找到上下文
+     */
     private SignalContext findContext(Object... params) {
         for (Object param : params) {
             if (param instanceof SignalContext) {
@@ -655,9 +718,10 @@ public class Signals {
         return null;
     }
 
+    /**
+     * 获取已注册的事件列表
+     */
     public Set<String> getRegisteredEvents() {
         return Collections.unmodifiableSet(sigHandlers.keySet());
     }
-
-
 }
