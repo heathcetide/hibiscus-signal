@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.heathcetide</groupId>
-    <artifactId>cetide.hibiscus.signal</artifactId>
+    <artifactId>cetide.hibiscus.docs</artifactId>
     <version>1.0.5</version>
 
     <packaging>jar</packaging>
@@ -19,18 +19,18 @@
     </properties>
 
 
-    <url>https://github.com/heathcetide/hibiscus-signal</url>
+    <url>https://github.com/heathcetide/hibiscus-docs</url>
 
     <licenses>
         <license>
             <name>cetide.hibiscus</name>
-            <url>https://github.com/heathcetide/hibiscus-signal</url>
+            <url>https://github.com/heathcetide/hibiscus-docs</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
 
     <description>
-        Hibiscus Signal - Hibiscus Signal is a robust event-driven system designed to manage signals, events, and handlers in a highly flexible and scalable way. process events asynchronously or synchronously, and manage event-based workflows with advanced features such as interceptors, filters, transformers, and metrics collection.
+        Hibiscus docs - Hibiscus docs is a robust event-driven system designed to manage docs, events, and handlers in a highly flexible and scalable way. process events asynchronously or synchronously, and manage event-based workflows with advanced features such as interceptors, filters, transformers, and metrics collection.
     </description>
 
     <developers>
@@ -44,9 +44,9 @@
 
 
     <scm>
-        <connection>scm:git:https://github.com/heathcetide/hibiscus-signal.git</connection>
-        <developerConnection>scm:git:https://github.com/heathcetide/hibiscus-signal.git</developerConnection>
-        <url>https://github.com/heathcetide/hibiscus-signal</url>
+        <connection>scm:git:https://github.com/heathcetide/hibiscus-docs.git</connection>
+        <developerConnection>scm:git:https://github.com/heathcetide/hibiscus-docs.git</developerConnection>
+        <url>https://github.com/heathcetide/hibiscus-docs</url>
     </scm>
 
     <distributionManagement>
@@ -80,6 +80,29 @@
             <version>5.3.23</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>5.3.20</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>1.30</version> <!-- 可根据需要调整版本 -->
+        </dependency>
+
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+
         <!-- AspectJ runtime dependency (AspectJ runtime is required for Spring AOP to work) -->
         <dependency>
             <groupId>org.aspectj</groupId>
@@ -107,17 +130,17 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- transmittable-thread-local -->
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>transmittable-thread-local</artifactId>
-            <version>2.14.2</version>
-        </dependency>
-
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson-databind.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -223,6 +246,28 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.4.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>9</source>
+                    <target>9</target>
+                </configuration>
             </plugin>
         </plugins>
     </build>
