@@ -570,7 +570,7 @@ public class Signals {
         } finally {
             span.setEndTime(System.currentTimeMillis());
             context.addSpan(span);
-            if (signalProperties.getPersistent()){
+            if (signalProperties != null && signalProperties.getPersistent()){
                 // 使用增强版持久化，支持追加写入
                 String fullPath = signalProperties.getPersistenceDirectory() + "/" + signalProperties.getPersistenceFile();
                 EnhancedSignalPersistence.appendToFile(
@@ -591,6 +591,11 @@ public class Signals {
      */
     private void executeWithTimeout(SigHandler sig, Object sender, long timeoutMs, Object... params)
             throws Exception {
+        // 如果线程池已关闭，回退到同步执行
+        if (executorService.isShutdown() || executorService.isTerminated()) {
+            executeHandler(sig, sender, params); // 直接同步执行
+            return;
+        }
 
         CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
             try {
@@ -625,15 +630,22 @@ public class Signals {
     /**
      * close the executor service
      */
+    // 应用关闭时的处理逻辑
     public void shutdown() {
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+            try {
+                // 等待一段时间让现有任务完成
+                if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow(); // 强制关闭
+                    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                        System.err.println("Thread pool did not terminate");
+                    }
+                }
+            } catch (InterruptedException ie) {
                 executorService.shutdownNow();
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
         }
     }
 
@@ -698,11 +710,9 @@ public class Signals {
     /**
      * 执行信号处理程序
      */
-    private void executeHandler(SigHandler handler, Object sender, Object... params) throws SignalProcessingException {
+    private void executeHandler(SigHandler handler, Object sender, Object... params) throws Exception {
         try {
-            // 确保第一个参数始终是SignalContext
             SignalContext context = findContext(params);
-
             if (context == null) {
                 context = new SignalContext();
                 Object[] newParams = new Object[params.length + 1];
@@ -713,9 +723,17 @@ public class Signals {
 
             handler.getHandler().handle(sender, params);
         } catch (Exception e) {
-            throw new SignalProcessingException("Signal handler execution failed: "+ e.getMessage(), 1001, e);
+            // 区分不同类型的异常，提供更明确的错误信息
+            String errorMessage = "Signal handler execution failed: " + e.getMessage();
+            if (e instanceof RuntimeException && e.getMessage().contains("支付处理失败")) {
+                // 对于支付相关的异常，可以特殊处理
+                throw new SignalProcessingException(errorMessage, 2001, e);
+            } else {
+                throw new SignalProcessingException(errorMessage, 1001, e);
+            }
         }
     }
+
 
     /**
      * 找到上下文
