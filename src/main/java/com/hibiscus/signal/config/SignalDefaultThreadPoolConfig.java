@@ -31,7 +31,7 @@ public class SignalDefaultThreadPoolConfig {
     @Bean(name = "signalExecutor")
     @ConditionalOnMissingBean(name = "signalExecutor") // Only active if user hasn't defined their own bean
     public ExecutorService defaultSignalExecutor() {
-        return new ThreadPoolExecutor(
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
                 // Core thread pool size: number of CPU cores
                 Runtime.getRuntime().availableProcessors(),
                 // Maximum thread pool size: (CPU cores * 2) + 1
@@ -58,5 +58,22 @@ public class SignalDefaultThreadPoolConfig {
                 // If the pool and queue are full, let the caller's thread execute the task
                 new ThreadPoolExecutor.CallerRunsPolicy()
         );
+
+        // 添加关闭钩子，确保JVM退出时线程池能正确关闭
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (!executor.isShutdown()) {
+                executor.shutdown();
+                try {
+                    if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                        executor.shutdownNow();
+                    }
+                } catch (InterruptedException e) {
+                    executor.shutdownNow();
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }, "signal-executor-shutdown-hook"));
+        
+        return executor;
     }
 }
