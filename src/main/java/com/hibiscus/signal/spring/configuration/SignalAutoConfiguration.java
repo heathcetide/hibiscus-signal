@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
  * if no user-defined beans are provided.
  */
 @Configuration
-@Import(SignalDatabaseConfiguration.class)
+@Import({SignalDatabaseConfiguration.class, SignalRedisConfiguration.class, SignalMqConfiguration.class})
 public class SignalAutoConfiguration {
 
     /*

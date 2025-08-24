@@ -24,6 +24,26 @@ public class SignalProperties {
     private String databaseTableName = "signal_events";
     private Integer databaseRetentionDays = 7;
     private Boolean enableDatabaseCleanup = true;
+    
+    // Redis配置
+    private Boolean redisEnabled = false;
+    private String redisHost = "localhost";
+    private Integer redisPort = 6379;
+    private String redisPassword = "";
+    private Integer redisDatabase = 0;
+    private Integer redisExpireSeconds = 86400; // 24小时
+    
+    // MQ配置
+    private Boolean mqEnabled = false;
+    private String mqType = "rabbitmq"; // rabbitmq, kafka, rocketmq
+    private String mqHost = "localhost";
+    private Integer mqPort = 5672;
+    private String mqUsername = "guest";
+    private String mqPassword = "guest";
+    private String mqVirtualHost = "/";
+    
+    // 持久化策略
+    private String persistenceStrategy = "database"; // file, database, redis, mq, database_redis, database_mq, all
 
     public Boolean getPersistent() {
         return persistent;
@@ -103,6 +123,121 @@ public class SignalProperties {
 
     public void setEnableDatabaseCleanup(Boolean enableDatabaseCleanup) {
         this.enableDatabaseCleanup = enableDatabaseCleanup;
+    }
+    
+    // Redis配置的getter和setter
+    public Boolean getRedisEnabled() {
+        return redisEnabled;
+    }
+    
+    public void setRedisEnabled(Boolean redisEnabled) {
+        this.redisEnabled = redisEnabled;
+    }
+    
+    public String getRedisHost() {
+        return redisHost;
+    }
+    
+    public void setRedisHost(String redisHost) {
+        this.redisHost = redisHost;
+    }
+    
+    public Integer getRedisPort() {
+        return redisPort;
+    }
+    
+    public void setRedisPort(Integer redisPort) {
+        this.redisPort = redisPort;
+    }
+    
+    public String getRedisPassword() {
+        return redisPassword;
+    }
+    
+    public void setRedisPassword(String redisPassword) {
+        this.redisPassword = redisPassword;
+    }
+    
+    public Integer getRedisDatabase() {
+        return redisDatabase;
+    }
+    
+    public void setRedisDatabase(Integer redisDatabase) {
+        this.redisDatabase = redisDatabase;
+    }
+    
+    public Integer getRedisExpireSeconds() {
+        return redisExpireSeconds;
+    }
+    
+    public void setRedisExpireSeconds(Integer redisExpireSeconds) {
+        this.redisExpireSeconds = redisExpireSeconds;
+    }
+    
+    // MQ配置的getter和setter
+    public Boolean getMqEnabled() {
+        return mqEnabled;
+    }
+    
+    public void setMqEnabled(Boolean mqEnabled) {
+        this.mqEnabled = mqEnabled;
+    }
+    
+    public String getMqType() {
+        return mqType;
+    }
+    
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
+    }
+    
+    public String getMqHost() {
+        return mqHost;
+    }
+    
+    public void setMqHost(String mqHost) {
+        this.mqHost = mqHost;
+    }
+    
+    public Integer getMqPort() {
+        return mqPort;
+    }
+    
+    public void setMqPort(Integer mqPort) {
+        this.mqPort = mqPort;
+    }
+    
+    public String getMqUsername() {
+        return mqUsername;
+    }
+    
+    public void setMqUsername(String mqUsername) {
+        this.mqUsername = mqUsername;
+    }
+    
+    public String getMqPassword() {
+        return mqPassword;
+    }
+    
+    public void setMqPassword(String mqPassword) {
+        this.mqPassword = mqPassword;
+    }
+    
+    public String getMqVirtualHost() {
+        return mqVirtualHost;
+    }
+    
+    public void setMqVirtualHost(String mqVirtualHost) {
+        this.mqVirtualHost = mqVirtualHost;
+    }
+    
+    // 持久化策略的getter和setter
+    public String getPersistenceStrategy() {
+        return persistenceStrategy;
+    }
+    
+    public void setPersistenceStrategy(String persistenceStrategy) {
+        this.persistenceStrategy = persistenceStrategy;
     }
 
     @Override

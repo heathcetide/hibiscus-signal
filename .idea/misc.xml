@@ -7,10 +7,12 @@
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="D:/study_file/sql-export/pom.xml" />
         <option value="$PROJECT_DIR$/signal-demo/pom.xml" />
+        <option value="$PROJECT_DIR$/simple-demo/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
       <set>
+        <option value="$PROJECT_DIR$/simple-demo/pom.xml" />
         <option value="D:/study_file/sql-export/pom.xml" />
       </set>
     </option>
