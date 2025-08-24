@@ -1,5 +1,6 @@
 package com.hibiscus.signal;
 
+import com.hibiscus.signal.config.EnhancedSignalPersistence;
 import com.hibiscus.signal.config.SignalConfig;
 import com.hibiscus.signal.config.SignalPriority;
 import com.hibiscus.signal.core.*;
@@ -570,7 +571,17 @@ public class Signals {
             span.setEndTime(System.currentTimeMillis());
             context.addSpan(span);
             if (signalProperties.getPersistent()){
-                SignalPersistence.saveToFile(new SignalPersistenceInfo(sig, config, context, metrics.getAllMetrics()), signalProperties.getPersistenceFile());
+                // 使用增强版持久化，支持追加写入
+                String fullPath = signalProperties.getPersistenceDirectory() + "/" + signalProperties.getPersistenceFile();
+                EnhancedSignalPersistence.appendToFile(
+                    new SignalPersistenceInfo(sig, config, context, metrics.getAllMetrics()), 
+                    fullPath
+                );
+                
+                // 文件轮转检查
+                if (signalProperties.getEnableFileRotation()) {
+                    EnhancedSignalPersistence.rotateFileIfNeeded(fullPath, signalProperties.getMaxFileSizeBytes());
+                }
             }
         }
     }

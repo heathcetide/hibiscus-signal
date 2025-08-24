@@ -36,6 +36,15 @@ public class SigHandler {
 
     private String handlerName;
 
+    // 添加无参构造函数，支持Jackson反序列化
+    public SigHandler() {
+        this.id = 0;
+        this.evType = null;
+        this.signalName = null;
+        this.handler = null;
+        this.priority = null;
+    }
+
     public SigHandler(long id, EventType evType, String signalName, SignalHandler handler, SignalPriority priority) {
         this.id = id;
         this.evType = evType;

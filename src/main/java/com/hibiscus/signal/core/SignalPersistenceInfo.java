@@ -14,6 +14,10 @@ public class SignalPersistenceInfo {
 
     private Map<String, Map<String, Object>> metrics;
 
+    // 添加无参构造函数，支持Jackson反序列化
+    public SignalPersistenceInfo() {
+    }
+
     public SignalPersistenceInfo(SigHandler sigHandler, SignalConfig signalConfig, SignalContext signalContext, Map<String, Map<String, Object>> metrics) {
         this.sigHandler = sigHandler;
         this.signalConfig = signalConfig;

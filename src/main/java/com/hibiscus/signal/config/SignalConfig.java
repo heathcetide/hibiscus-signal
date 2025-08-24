@@ -37,6 +37,21 @@ public class SignalConfig {
     private final boolean persistent;
 
     /**
+     * Default constructor for Jackson deserialization.
+     */
+    public SignalConfig() {
+        this.async = false;
+        this.maxRetries = 3;
+        this.retryDelayMs = 1000;
+        this.maxHandlers = 100;
+        this.timeoutMs = 5000;
+        this.recordMetrics = true;
+        this.priority = SignalPriority.MEDIUM;
+        this.groupName = null;
+        this.persistent = false;
+    }
+
+    /**
      * Private constructor used by the builder.
      *
      * @param builder the builder instance with configuration values

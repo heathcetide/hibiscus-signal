@@ -1,0 +1,27 @@
+# 增强版持久化配置示例
+hibiscus:
+  # 启用持久化功能
+  persistent: true
+  
+  # 持久化文件配置
+  persistence-file: signal.json
+  persistence-directory: logs/signals
+  
+  # 文件轮转配置
+  max-file-size-bytes: 10485760  # 10MB
+  enable-file-rotation: true
+  max-backup-files: 10
+
+# 日志配置
+logging:
+  level:
+    com.hibiscus.signal: DEBUG
+  file:
+    name: logs/application.log
+    max-size: 10MB
+    max-history: 30
+
+# 应用配置
+spring:
+  application:
+    name: hibiscus-signal-demo
