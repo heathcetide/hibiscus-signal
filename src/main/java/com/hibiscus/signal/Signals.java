@@ -1,9 +1,11 @@
 package com.hibiscus.signal;
 
+import com.hibiscus.signal.config.DatabaseSignalPersistence;
 import com.hibiscus.signal.config.EnhancedSignalPersistence;
 import com.hibiscus.signal.config.SignalConfig;
 import com.hibiscus.signal.config.SignalPriority;
 import com.hibiscus.signal.core.*;
+import com.hibiscus.signal.core.service.EventStateManager;
 import com.hibiscus.signal.exceptions.SignalProcessingException;
 import com.hibiscus.signal.spring.config.SignalProperties;
 import com.hibiscus.signal.utils.SnowflakeIdGenerator;
@@ -81,6 +83,18 @@ public class Signals {
      */
     @Autowired
     private SignalProperties signalProperties;
+
+    /**
+     * 数据库持久化服务
+     */
+    @Autowired(required = false)
+    private DatabaseSignalPersistence databasePersistence;
+
+    /**
+     * 事件状态管理器
+     */
+    @Autowired(required = false)
+    private EventStateManager eventStateManager;
 
     /**
      * 日志记录器
@@ -566,10 +580,35 @@ public class Signals {
         context.setParentSpanId(spanId);
 
         try {
+            // 记录事件开始处理（数据库持久化）
+            if (eventStateManager != null) {
+                eventStateManager.recordEventStart(sig, config, context, params);
+            }
+            
             executeWithRetry(event, sig, sender, config, params);
+            
+            // 记录事件处理成功（数据库持久化）
+            if (eventStateManager != null) {
+                String eventId = context.getEventId();
+                if (eventId != null) {
+                    eventStateManager.recordEventSuccess(eventId);
+                }
+            }
+            
+        } catch (Exception e) {
+            // 记录事件处理失败（数据库持久化）
+            if (eventStateManager != null) {
+                String eventId = context.getEventId();
+                if (eventId != null) {
+                    eventStateManager.recordEventFailed(eventId, e.getMessage(), getStackTrace(e));
+                }
+            }
+            throw e;
         } finally {
             span.setEndTime(System.currentTimeMillis());
             context.addSpan(span);
+            
+            // 文件持久化（如果启用）
             if (signalProperties != null && signalProperties.getPersistent()){
                 // 使用增强版持久化，支持追加写入
                 String fullPath = signalProperties.getPersistenceDirectory() + "/" + signalProperties.getPersistenceFile();
@@ -611,6 +650,18 @@ public class Signals {
             task.cancel(true); // 尝试中断
             throw new SignalProcessingException("Signal handler execution timed out", 1001);
         }
+    }
+
+    /**
+     * 获取异常的堆栈跟踪信息
+     */
+    private String getStackTrace(Exception e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(e.toString()).append("\n");
+        for (StackTraceElement element : e.getStackTrace()) {
+            sb.append("\tat ").append(element.toString()).append("\n");
+        }
+        return sb.toString();
     }
 
     /**

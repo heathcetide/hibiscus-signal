@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 
 import java.util.concurrent.ExecutorService;
@@ -17,6 +18,7 @@ import java.util.concurrent.ExecutorService;
  * if no user-defined beans are provided.
  */
 @Configuration
+@Import(SignalDatabaseConfiguration.class)
 public class SignalAutoConfiguration {
 
     /*

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.heathcetide</groupId>
   <artifactId>cetide.hibiscus.signal</artifactId>
-  <version>1.0.5</version>
+  <version>1.0.6</version>
   <description>Hibiscus Signal - Hibiscus Signal is a robust event-driven system designed to manage signals, events, and handlers in a highly flexible and scalable way. process events asynchronously or synchronously, and manage event-based workflows with advanced features such as interceptors, filters, transformers, and metrics collection.</description>
   <url>https://github.com/heathcetide/hibiscus-signal</url>
   <developers>
@@ -51,6 +51,9 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
@@ -157,6 +160,7 @@
     </snapshotRepository>
   </distributionManagement>
   <properties>
+    <jackson-databind.version>2.13.4.2</jackson-databind.version>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

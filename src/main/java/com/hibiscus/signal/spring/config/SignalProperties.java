@@ -19,6 +19,12 @@ public class SignalProperties {
     private Integer maxBackupFiles = 10;
     private String persistenceDirectory = "logs/signals";
 
+    // 数据库持久化配置
+    private Boolean databasePersistent = false;
+    private String databaseTableName = "signal_events";
+    private Integer databaseRetentionDays = 7;
+    private Boolean enableDatabaseCleanup = true;
+
     public Boolean getPersistent() {
         return persistent;
     }
@@ -67,6 +73,38 @@ public class SignalProperties {
         this.persistenceDirectory = persistenceDirectory;
     }
 
+    public Boolean getDatabasePersistent() {
+        return databasePersistent;
+    }
+
+    public void setDatabasePersistent(Boolean databasePersistent) {
+        this.databasePersistent = databasePersistent;
+    }
+
+    public String getDatabaseTableName() {
+        return databaseTableName;
+    }
+
+    public void setDatabaseTableName(String databaseTableName) {
+        this.databaseTableName = databaseTableName;
+    }
+
+    public Integer getDatabaseRetentionDays() {
+        return databaseRetentionDays;
+    }
+
+    public void setDatabaseRetentionDays(Integer databaseRetentionDays) {
+        this.databaseRetentionDays = databaseRetentionDays;
+    }
+
+    public Boolean getEnableDatabaseCleanup() {
+        return enableDatabaseCleanup;
+    }
+
+    public void setEnableDatabaseCleanup(Boolean enableDatabaseCleanup) {
+        this.enableDatabaseCleanup = enableDatabaseCleanup;
+    }
+
     @Override
     public String toString() {
         return "SignalProperties{" +
@@ -76,6 +114,10 @@ public class SignalProperties {
                 ", enableFileRotation=" + enableFileRotation +
                 ", maxBackupFiles=" + maxBackupFiles +
                 ", persistenceDirectory='" + persistenceDirectory + '\'' +
+                ", databasePersistent=" + databasePersistent +
+                ", databaseTableName='" + databaseTableName + '\'' +
+                ", databaseRetentionDays=" + databaseRetentionDays +
+                ", enableDatabaseCleanup=" + enableDatabaseCleanup +
                 '}';
     }
 }
