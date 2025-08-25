@@ -1,6 +1,7 @@
 package com.hibiscus.signal.core;
 
 import com.hibiscus.signal.config.SignalConfig;
+import com.hibiscus.signal.core.entity.DeadLetterEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -22,6 +23,7 @@ public class EventTransactionManager {
     private final PlatformTransactionManager transactionManager;
     private final ConcurrentHashMap<String, EventTransactionInfo> eventTransactions = new ConcurrentHashMap<>();
     private final AtomicLong transactionCounter = new AtomicLong(0);
+    private DeadLetterQueueManager deadLetterQueueManager;
 
     public EventTransactionManager(PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
@@ -133,15 +135,45 @@ public class EventTransactionManager {
      * 处理死信事件
      */
     private void handleDeadLetter(String eventName, SignalContext context, Object[] params, Exception error) {
-        // 这里可以实现死信队列逻辑
-        // 例如：保存到数据库、发送告警、记录日志等
-        log.error("死信事件: {} - 上下文: {}, 参数: {}, 错误: {}", 
-                 eventName, context, params, error.getMessage());
-        
-        // TODO: 实现具体的死信处理逻辑
-        // 1. 保存到死信表
-        // 2. 发送告警通知
-        // 3. 记录详细日志
+        try {
+            // 创建死信事件 - 使用默认重试次数，因为这里没有config参数
+            DeadLetterEvent deadLetterEvent = new DeadLetterEvent(
+                eventName, 
+                getHandlerName(context), 
+                context, 
+                params, 
+                error, 
+                3 // 默认重试3次
+            );
+            
+            // 生成唯一ID
+            deadLetterEvent.setId(generateTransactionId(eventName));
+            
+            // 添加到死信队列管理器
+            if (deadLetterQueueManager != null) {
+                deadLetterQueueManager.addDeadLetterEvent(deadLetterEvent);
+                log.info("死信事件已添加到队列: {}", deadLetterEvent.getEventSummary());
+            } else {
+                log.warn("死信队列管理器未初始化，无法处理死信事件: {}", eventName);
+            }
+            
+        } catch (Exception e) {
+            log.error("处理死信事件时发生异常: {} - 原始错误: {}", e.getMessage(), error.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 获取处理器名称
+     */
+    private String getHandlerName(SignalContext context) {
+        if (context != null) {
+            // 从上下文中获取处理器信息，如果没有则使用默认值
+            Object handlerInfo = context.getAttribute("handler");
+            if (handlerInfo != null) {
+                return handlerInfo.getClass().getSimpleName();
+            }
+        }
+        return "UnknownHandler";
     }
 
     /**

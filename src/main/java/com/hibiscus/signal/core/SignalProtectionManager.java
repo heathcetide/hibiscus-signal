@@ -1,5 +1,7 @@
 package com.hibiscus.signal.core;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * - Tracks protection mechanisms for each signal individually.
  */
 public class SignalProtectionManager {
+    
+    private static final Logger log = LoggerFactory.getLogger(SignalProtectionManager.class);
 
     // Map of signal names to their CircuitBreaker instances
     private final Map<String, CircuitBreaker> breakers = new ConcurrentHashMap<>();
@@ -87,9 +91,18 @@ public class SignalProtectionManager {
      * 获取错误率阈值，支持配置化
      */
     private double getErrorRateThreshold() {
-        // 这里可以通过配置获取，暂时硬编码为0.5
-        // TODO: 从配置中读取错误率阈值
-        return 0.5;
+        // 从配置中读取错误率阈值，如果没有配置则使用默认值
+        try {
+            // 这里可以通过Spring的配置属性获取
+            // 暂时使用系统属性，后续可以集成Spring配置
+            String thresholdStr = System.getProperty("hibiscus.signal.circuit-breaker.error-rate-threshold");
+            if (thresholdStr != null) {
+                return Double.parseDouble(thresholdStr);
+            }
+        } catch (Exception e) {
+            log.warn("解析错误率阈值配置失败，使用默认值: {}", e.getMessage());
+        }
+        return 0.5; // 默认50%错误率触发熔断
     }
 
     /**
