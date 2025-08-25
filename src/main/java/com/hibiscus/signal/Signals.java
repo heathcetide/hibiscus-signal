@@ -1,7 +1,6 @@
 package com.hibiscus.signal;
 
 import com.hibiscus.signal.config.DatabaseSignalPersistence;
-import com.hibiscus.signal.config.EnhancedSignalPersistence;
 import com.hibiscus.signal.config.SignalConfig;
 import com.hibiscus.signal.core.*;
 import com.hibiscus.signal.core.service.EventStateManager;
@@ -72,6 +71,8 @@ public class Signals implements DisposableBean {
      * 绑定事件处理器（带配置）
      */
     public long connect(String event, SignalHandler handler, SignalConfig signalConfig) {
+        // 自动配置保护机制
+        autoConfigureProtection(event);
         return signalRegistry.registerHandler(event, handler, signalConfig);
     }
 
@@ -158,9 +159,9 @@ public class Signals implements DisposableBean {
 
         // 6. 根据配置选择同步或异步发射
         if (config.isAsync()) {
-            signalEmitter.emitAsync(event, sender, sigs, config, errorHandler, null, processedParams);
+            signalEmitter.emitAsync(event, sender, sigs, config, errorHandler, null, protectionManager, metrics, processedParams);
         } else {
-            signalEmitter.emitSync(event, sender, sigs, config, errorHandler, null, processedParams);
+            signalEmitter.emitSync(event, sender, sigs, config, errorHandler, null, protectionManager, metrics, processedParams);
         }
     }
 
@@ -215,9 +216,9 @@ public class Signals implements DisposableBean {
 
         // 6. 根据配置选择同步或异步发射
         if (config.isAsync()) {
-            signalEmitter.emitAsync(event, sender, sigs, config, errorHandler, callback, processedParams);
+            signalEmitter.emitAsync(event, sender, sigs, config, errorHandler, callback, protectionManager, metrics, processedParams);
         } else {
-            signalEmitter.emitSync(event, sender, sigs, config, errorHandler, callback, processedParams);
+            signalEmitter.emitSync(event, sender, sigs, config, errorHandler, callback, protectionManager, metrics, processedParams);
         }
     }
 
@@ -348,6 +349,34 @@ public class Signals implements DisposableBean {
     public void configureProtection(String event, CircuitBreaker breaker, RateLimiter limiter) {
         protectionManager.registerCircuitBreaker(event, breaker);
         protectionManager.registerRateLimiter(event, limiter);
+    }
+    
+    /**
+     * 根据配置自动配置保护机制
+     */
+    public void autoConfigureProtection(String event) {
+        if (signalProperties != null && signalProperties.getProtectionEnabled()) {
+            // 自动创建熔断器
+            CircuitBreaker breaker = new CircuitBreaker(
+                signalProperties.getCircuitBreakerFailureThreshold(),
+                signalProperties.getCircuitBreakerOpenTimeoutMs(),
+                signalProperties.getCircuitBreakerHalfOpenTrialCount()
+            );
+            
+            // 自动创建限流器
+            RateLimiter limiter = new RateLimiter(
+                signalProperties.getRateLimiterMaxRequestsPerSecond()
+            );
+            
+            // 注册保护机制
+            protectionManager.registerCircuitBreaker(event, breaker);
+            protectionManager.registerRateLimiter(event, limiter);
+            
+            log.info("自动配置保护机制完成: {} - 熔断器阈值:{}, 限流器QPS:{}", 
+                    event, 
+                    signalProperties.getCircuitBreakerFailureThreshold(),
+                    signalProperties.getRateLimiterMaxRequestsPerSecond());
+        }
     }
 
     /**

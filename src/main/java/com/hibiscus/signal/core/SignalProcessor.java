@@ -83,6 +83,41 @@ public class SignalProcessor {
     }
     
     /**
+     * 执行带追踪和熔断器状态更新的信号处理
+     */
+    public void executeWithTracingAndProtection(String event, SigHandler sig, Object sender, 
+                                               SignalConfig config, SignalContext context, 
+                                               SignalProtectionManager protectionManager,
+                                               SignalMetrics metrics, Object... params) throws Exception {
+        String spanId = UUID.randomUUID().toString();
+        String parentSpanId = context.getParentSpanId() != null ? context.getParentSpanId() : context.getEventId();
+
+        SignalContext.Span span = new SignalContext.Span();
+        span.setSpanId(spanId);
+        span.setParentSpanId(parentSpanId);
+        String op = sig.getHandlerName() != null ? sig.getHandlerName() : "Handler: Unknown";
+        span.setOperation(op);
+        span.setStartTime(System.currentTimeMillis());
+
+        context.setParentSpanId(spanId);
+
+        try {
+            executeWithRetry(event, sig, sender, config, params);
+            // 处理成功，更新熔断器状态
+            if (protectionManager != null && metrics != null) {
+                protectionManager.update(event, metrics);
+            }
+        } catch (Exception e) {
+            // 处理失败，记录错误指标（熔断器状态会在Signals.emit中通过metrics更新）
+            log.error("Signal handler execution failed: {} - {}", event, e.getMessage(), e);
+            throw e;
+        } finally {
+            span.setEndTime(System.currentTimeMillis());
+            context.addSpan(span);
+        }
+    }
+    
+    /**
      * 执行超时处理
      */
     private void executeWithTimeout(SigHandler sig, Object sender, long timeoutMs, Object... params)

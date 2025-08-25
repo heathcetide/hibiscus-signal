@@ -44,6 +44,14 @@ public class SignalProperties {
     
     // 持久化策略
     private String persistenceStrategy = "database"; // file, database, redis, mq, database_redis, database_mq, all
+    
+    // 保护机制配置
+    private Boolean protectionEnabled = false;
+    private Integer circuitBreakerFailureThreshold = 5;
+    private Long circuitBreakerOpenTimeoutMs = 60000L; // 60秒
+    private Integer circuitBreakerHalfOpenTrialCount = 3;
+    private Integer rateLimiterMaxRequestsPerSecond = 1000;
+    private Double circuitBreakerErrorRateThreshold = 0.5; // 50%错误率触发熔断
 
     public Boolean getPersistent() {
         return persistent;
@@ -238,6 +246,55 @@ public class SignalProperties {
     
     public void setPersistenceStrategy(String persistenceStrategy) {
         this.persistenceStrategy = persistenceStrategy;
+    }
+    
+    // 保护机制配置的getter和setter
+    public Boolean getProtectionEnabled() {
+        return protectionEnabled;
+    }
+    
+    public void setProtectionEnabled(Boolean protectionEnabled) {
+        this.protectionEnabled = protectionEnabled;
+    }
+    
+    public Integer getCircuitBreakerFailureThreshold() {
+        return circuitBreakerFailureThreshold;
+    }
+    
+    public void setCircuitBreakerFailureThreshold(Integer circuitBreakerFailureThreshold) {
+        this.circuitBreakerFailureThreshold = circuitBreakerFailureThreshold;
+    }
+    
+    public Long getCircuitBreakerOpenTimeoutMs() {
+        return circuitBreakerOpenTimeoutMs;
+    }
+    
+    public void setCircuitBreakerOpenTimeoutMs(Long circuitBreakerOpenTimeoutMs) {
+        this.circuitBreakerOpenTimeoutMs = circuitBreakerOpenTimeoutMs;
+    }
+    
+    public Integer getCircuitBreakerHalfOpenTrialCount() {
+        return circuitBreakerHalfOpenTrialCount;
+    }
+    
+    public void setCircuitBreakerHalfOpenTrialCount(Integer circuitBreakerHalfOpenTrialCount) {
+        this.circuitBreakerHalfOpenTrialCount = circuitBreakerHalfOpenTrialCount;
+    }
+    
+    public Integer getRateLimiterMaxRequestsPerSecond() {
+        return rateLimiterMaxRequestsPerSecond;
+    }
+    
+    public void setRateLimiterMaxRequestsPerSecond(Integer rateLimiterMaxRequestsPerSecond) {
+        this.rateLimiterMaxRequestsPerSecond = rateLimiterMaxRequestsPerSecond;
+    }
+    
+    public Double getCircuitBreakerErrorRateThreshold() {
+        return circuitBreakerErrorRateThreshold;
+    }
+    
+    public void setCircuitBreakerErrorRateThreshold(Double circuitBreakerErrorRateThreshold) {
+        this.circuitBreakerErrorRateThreshold = circuitBreakerErrorRateThreshold;
     }
 
     @Override

@@ -55,4 +55,23 @@ public class RateLimiter {
             return false;
         }
     }
+    
+    /**
+     * Checks whether a request can be allowed without actually allowing it.
+     * This is a read-only operation that doesn't change the internal state.
+     *
+     * @return true if a request can be allowed, false otherwise
+     */
+    public synchronized boolean canAllowRequest() {
+        long now = System.currentTimeMillis();
+        long oneSecondAgo = now - 1000;
+
+        // Remove timestamps that are outside the 1-second window
+        while (!timestamps.isEmpty() && timestamps.peekFirst() < oneSecondAgo) {
+            timestamps.pollFirst();
+        }
+
+        // Return whether a request can be allowed (without adding the timestamp)
+        return timestamps.size() < maxRequestsPerSecond;
+    }
 }

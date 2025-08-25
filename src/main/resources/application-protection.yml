@@ -1,0 +1,31 @@
+# 启用保护机制的配置示例
+hibiscus:
+  # 启用保护机制
+  protection:
+    enabled: true
+    
+    # 熔断器配置
+    circuit-breaker:
+      failure-threshold: 5          # 失败次数阈值
+      open-timeout-ms: 60000        # 熔断器打开时间（毫秒）
+      half-open-trial-count: 3      # 半开状态下的试验次数
+      error-rate-threshold: 0.5     # 错误率阈值（50%）
+    
+    # 限流器配置
+    rate-limiter:
+      max-requests-per-second: 1000 # 每秒最大请求数
+  
+  # 其他配置保持不变
+  persistent: true
+  databasePersistent: true
+  redis:
+    enabled: true
+    host: localhost
+    port: 6379
+    expire-seconds: 86400
+  
+  mq:
+    enabled: true
+    type: rabbitmq
+    host: localhost
+    port: 5672

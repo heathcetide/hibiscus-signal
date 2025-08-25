@@ -26,7 +26,14 @@ public class SignalProtectionManager {
     public boolean isBlocked(String signal) {
         CircuitBreaker cb = breakers.get(signal);
         RateLimiter rl = limiters.get(signal);
-        return (cb != null && cb.isOpen()) || (rl != null && !rl.allowRequest());
+        
+        // 检查熔断器状态
+        boolean circuitBreakerBlocked = (cb != null && cb.isOpen());
+        
+        // 检查限流器状态 - 使用只读方法检查状态
+        boolean rateLimiterBlocked = (rl != null && !rl.canAllowRequest());
+        
+        return circuitBreakerBlocked || rateLimiterBlocked;
     }
 
     /**
@@ -44,7 +51,9 @@ public class SignalProtectionManager {
         if (cb != null) {
             if (emitCount == 0) return; // No emit data yet, skip
             double errorRate = (double) errorCount / emitCount;
-            if (errorRate > 0.5) { // Threshold for tripping circuit breaker; can be configurable
+            // 使用配置的错误率阈值，默认为0.5
+            double threshold = getErrorRateThreshold();
+            if (errorRate > threshold) {
                 cb.recordFailure();
             } else {
                 cb.recordSuccess();
@@ -52,6 +61,35 @@ public class SignalProtectionManager {
         }
 
         // Rate limiter does not depend on metrics; it uses allowRequest directly
+    }
+    
+    /**
+     * 记录信号处理成功
+     */
+    public void recordSuccess(String signal) {
+        CircuitBreaker cb = breakers.get(signal);
+        if (cb != null) {
+            cb.recordSuccess();
+        }
+    }
+    
+    /**
+     * 记录信号处理失败
+     */
+    public void recordFailure(String signal) {
+        CircuitBreaker cb = breakers.get(signal);
+        if (cb != null) {
+            cb.recordFailure();
+        }
+    }
+    
+    /**
+     * 获取错误率阈值，支持配置化
+     */
+    private double getErrorRateThreshold() {
+        // 这里可以通过配置获取，暂时硬编码为0.5
+        // TODO: 从配置中读取错误率阈值
+        return 0.5;
     }
 
     /**

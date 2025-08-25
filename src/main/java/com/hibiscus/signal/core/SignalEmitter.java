@@ -30,7 +30,8 @@ public class SignalEmitter {
      */
     public void emitSync(String event, Object sender, List<SigHandler> sigs,
                         SignalConfig config, Consumer<Throwable> errorHandler, 
-                        SignalCallback callback, Object... params) {
+                        SignalCallback callback, SignalProtectionManager protectionManager,
+                        SignalMetrics metrics, Object... params) {
         for (SigHandler sig : sigs) {
             long startTime = System.currentTimeMillis();
             try {
@@ -38,7 +39,8 @@ public class SignalEmitter {
                 if (context == null) {
                     context = new SignalContext();
                 }
-                signalProcessor.executeWithTracing(event, sig, sender, config, context, params);
+                signalProcessor.executeWithTracingAndProtection(event, sig, sender, config, context, 
+                                                             protectionManager, metrics, params);
                 if (config.isRecordMetrics()) {
                     // 记录处理时间
                     long processingTime = System.currentTimeMillis() - startTime;
@@ -65,7 +67,8 @@ public class SignalEmitter {
      */
     public void emitAsync(String event, Object sender, List<SigHandler> sigs,
                          SignalConfig config, Consumer<Throwable> errorHandler, 
-                         SignalCallback callback, Object... params) {
+                         SignalCallback callback, SignalProtectionManager protectionManager,
+                         SignalMetrics metrics, Object... params) {
         for (SigHandler sig : sigs) {
             CompletableFuture.runAsync(() -> {
                 long startTime = System.currentTimeMillis();
@@ -74,7 +77,8 @@ public class SignalEmitter {
                     if (context == null) {
                         context = new SignalContext();
                     }
-                    signalProcessor.executeWithTracing(event, sig, sender, config, context, params);
+                    signalProcessor.executeWithTracingAndProtection(event, sig, sender, config, context, 
+                                                                 protectionManager, metrics, params);
                     if (config.isRecordMetrics()) {
                         long processingTime = System.currentTimeMillis() - startTime;
                         log.debug("Signal [{}] processed asynchronously in {}ms", event, processingTime);
